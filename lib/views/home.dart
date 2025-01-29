@@ -21,7 +21,8 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: const Color(0xFFFBF6A4),
       appBar: barraMenu(context),
 
-      body: Center(
+      body: SingleChildScrollView(
+        child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
@@ -101,6 +102,7 @@ class _HomePageState extends State<HomePage> {
 
           ],
 
+        ),
         ),
       ),
 
