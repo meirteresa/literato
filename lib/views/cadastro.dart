@@ -168,8 +168,10 @@ class _CadastroPageState extends State<CadastroPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFA0D6B6),
-      body: Center(
-          child: Column(
+
+      body: SingleChildScrollView(
+        child: Center(
+        child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
               // // Texto de boas-vindas
@@ -234,7 +236,7 @@ class _CadastroPageState extends State<CadastroPage> {
 
               // Campo Senha
               Container(
-                margin: const EdgeInsets.only(top: 15.0, bottom: 20.0),
+                margin: const EdgeInsets.only(top: 15.0, bottom: 40.0),
                 width: 300.0,
                 height: 100.0,
                 child: TextField(
@@ -273,6 +275,7 @@ class _CadastroPageState extends State<CadastroPage> {
                 ),
               ),
             ],
+        ),
         ),
       ),
     );
