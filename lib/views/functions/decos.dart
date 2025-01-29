@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:literato/views/individual.dart';
 
 //cores
 const amarelo1 = Color(0xFFFBF6A4);
@@ -8,6 +9,7 @@ const rosa1 = Color(0xF4F08484);
 const rosa2 = Color(0xFFF29985);
 const verde = Color(0xFFA0D6B6);
 const branco = Color(0xFFFFFFFF);
+const transparente = Color(0x00000000);
 
 //funções
 dynamic inputDecoration(String? help, String? erro, String hintText, [IconData? icon]){
@@ -188,7 +190,7 @@ dynamic barraMenu(BuildContext context){
           backgroundColor: Colors.purple[300],
           leading: IconButton(
             icon: Icon(Icons.help_outline_rounded, color: branco),
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {},
             iconSize: 32,
           ),
           actions: [
@@ -214,4 +216,171 @@ dynamic barraMenu(BuildContext context){
       );
 
   return barraMenu;
+}
+
+dynamic barraMenuIndividual(BuildContext context){
+  var barraMenu = AppBar(
+          toolbarHeight: 80,
+          backgroundColor: Colors.purple[300],
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: branco),
+            onPressed: () => Navigator.of(context).pop(),
+            iconSize: 32,
+          ),
+          actions: [
+            IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.help_outline_rounded, color: branco),
+              iconSize: 32,
+            ),
+          ],
+          title: Image.asset('images/logo5.png', fit: BoxFit.fill, height: 68),
+          centerTitle: true,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(0),
+            )
+          ),
+      );
+
+  return barraMenu;
+}
+
+dynamic boxDeco(){
+  return BoxDecoration(
+          // border: Border(right: BorderSide(color: rosa1)),
+          color: transparente,
+        );
+}
+
+dynamic letras(String letra){
+  return Padding(
+          padding: EdgeInsets.all(8.0),
+          child: Text(letra, style: TextStyle(
+            fontSize: 22,
+            color: rosa1,
+            fontFamily: 'MightySouly',
+          ),),
+        );
+}
+
+dynamic respostaDeco(String hint){
+  var deco = InputDecoration(
+    hintText: hint,
+    hintStyle: const TextStyle(
+      fontSize: 15.0, 
+      color: Colors.white70, 
+    ),
+    
+    disabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(
+        width: 3, 
+        color: Color.fromARGB(255, 186, 104, 200),
+      ),
+    ),
+    enabledBorder: UnderlineInputBorder(
+      borderSide: BorderSide(
+        width: 3, 
+        color: Color.fromARGB(255, 186, 104, 200),
+      ),
+    ),
+    focusedBorder: UnderlineInputBorder(
+      borderSide: BorderSide(
+        width: 3, 
+        color: Color.fromARGB(255, 186, 104, 200),
+      ),
+    ),
+    
+    // helperText: help,
+    // helperStyle: const TextStyle(
+    //   fontSize: 13.0, 
+    //   color: Colors.black87,
+    // ),  
+    // helperMaxLines: 3,
+
+    filled: false,
+    // fillColor: Colors.white,   
+    // focusColor: Colors.white, 
+    // hoverColor: Colors.white,                   
+    
+    // errorText: erro,
+    // errorStyle: TextStyle(
+    //   fontSize: 13.0,
+    //   color: Colors.red,
+    //   fontWeight: FontWeight.w300, 
+    // ),
+    // errorMaxLines: 3,
+  );
+  return deco;
+}
+
+dynamic botaoEnviar(){
+  var deco = ButtonStyle(
+                elevation: MaterialStateProperty.resolveWith<double>((states) {
+                  if (states.contains(MaterialState.hovered)) {
+                    return 0.0; 
+                  } else if (states.contains(MaterialState.pressed)) {
+                    return 0.0;
+                  }
+                  return 0.0;
+                }),
+                padding: MaterialStateProperty.all(
+                  EdgeInsets.all(5.0),
+                ),
+                foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                  if (states.contains(MaterialState.hovered)) {
+                    return rosa1; // Cor de fundo ao passar o mouse
+                  }
+                  return rosa1; // Cor padrão
+                }),
+                backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                  if (states.contains(MaterialState.hovered)) {
+                    return rosa1;
+                  }
+                  return rosa1; // Cor padrão
+                }),
+
+                shape: MaterialStateProperty.all(
+                  RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                // side: MaterialStateProperty.all(
+                //   BorderSide(
+                //     color: corBorda(ehAmarelo),
+                //     width: 0,
+                //   ),
+                // )
+              );
+
+  return deco;
+}
+
+dynamic pontos(String frase, String fonte, double tamanho, bool ehQntd){
+  return Padding(
+          padding: paddingCaixaPontos(ehQntd),
+          child: Text(frase, style: TextStyle(
+            fontSize: tamanho,
+            color: Colors.white,
+            fontFamily: fonte,
+          ),),
+        );
+}
+
+dynamic boxPontos(){
+  return BoxDecoration(
+          color: roxo,
+          border: Border(
+            top: BorderSide(color: Colors.white, width: 1.8),
+          ),
+          borderRadius: BorderRadius.vertical(
+              bottom: Radius.elliptical(150,30)
+            )
+        );
+}
+
+dynamic paddingCaixaPontos(bool ehQntd){
+   EdgeInsets padding = ehQntd ? EdgeInsets.only(left:30, top: 13, bottom: 13) : EdgeInsets.all(13);
+  return padding;
 }
