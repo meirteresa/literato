@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/functions/decos.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 var amarelo = Color(0xFFF9BF64);
 var rosa = Color(0xF4F08484);
@@ -15,7 +17,94 @@ class IndividualPage extends StatefulWidget {
 }
 
 class _IndividualPageState extends State<IndividualPage> {
-  final List<String> words = List.generate(21, (index) => 'Palavra ${index + 1}');
+  TextEditingController _controller = TextEditingController();
+  List<String> letras = [];
+  List<String> palavrasDoDia = [];
+  late List<String> palavrasEncontradas = [];
+  int pontuacao = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    carregarDadosDiarios();
+    carregarProgressoUsuario();
+  }
+
+    Future<void> carregarDadosDiarios() async {
+    String today = DateTime.now().toIso8601String().split("T")[0];
+    var doc = await FirebaseFirestore.instance.collection("daily_levels").doc(today).get();
+    if (doc.exists) {
+      setState(() {
+        letras = List<String>.from(doc.data()?['letras'] ?? []);
+        palavrasDoDia = List<String>.from(doc.data()?['palavras']?.map((p) => p['palavra']) ?? []);
+      });
+    }
+  }
+
+  Future<void> carregarProgressoUsuario() async {
+    var userDoc = await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).get();
+    if (userDoc.exists) {
+      setState(() {
+        palavrasEncontradas = List<String>.from(userDoc.data()?['palavrasEncontradas'] ?? []);
+        pontuacao = userDoc.data()?['pontuacao'] ?? 0;
+      });
+    }
+  }
+
+  Future<void> verificarPalavra(String palavra) async {
+    if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
+      int pontosGanhos = 5 + (palavra.length - palavrasDoDia.first.length) * 5;
+      setState(() {
+        palavrasEncontradas.add(palavra);
+        pontuacao += pontosGanhos;
+      });
+      await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).update({
+        "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
+        "pontuacao": FieldValue.increment(pontosGanhos)
+      });
+      verificarVitoria();
+    }
+  }
+
+  void verificarVitoria() {
+    if (palavrasEncontradas.length == palavrasDoDia.length) {
+      mostrarMensagem("Parabéns! Você encontrou todas as palavras!");
+      resetarJogo();
+    }
+  }
+
+  Future<void> resetarJogo() async {
+    setState(() {
+      palavrasEncontradas.clear();
+      pontuacao = 0;
+    });
+    await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).update({
+      "palavrasEncontradas": [],
+      "pontuacao": 0
+    });
+  }
+
+  void mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: "OK",
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
+  void desistir() {
+    mostrarMensagem("Você desistiu do desafio!");
+    resetarJogo();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +143,7 @@ class _IndividualPageState extends State<IndividualPage> {
                   ),
                   DecoratedBox(
                     decoration: boxDeco(),
-                      child: pontos("0 pontos", 'Lato', 15, true),
+                      child: pontos("$pontuacao pontos", 'Lato', 15, true),
                   ),
                 ],
               )
@@ -79,7 +168,7 @@ class _IndividualPageState extends State<IndividualPage> {
                 children: [
                   DecoratedBox(
                     decoration: boxDeco(),
-                    child: letras('A'),
+                    child: decoLetras(letras[0]),
                   ),
                   SizedBox(
                     height: 52,
@@ -87,15 +176,7 @@ class _IndividualPageState extends State<IndividualPage> {
                   ),
                   DecoratedBox(
                     decoration: boxDeco(),
-                    child: letras('B'),
-                  ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: rosa1, thickness: 2.5),
-                  ),                  
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                    child: letras('C'),
+                    child: decoLetras(letras[1]),
                   ),
                   SizedBox(
                     height: 52,
@@ -103,7 +184,15 @@ class _IndividualPageState extends State<IndividualPage> {
                   ),                  
                   DecoratedBox(
                     decoration: boxDeco(),
-                    child: letras('D'),
+                    child: decoLetras(letras[2]),
+                  ),
+                  SizedBox(
+                    height: 52,
+                    child: VerticalDivider(color: rosa1, thickness: 2.5),
+                  ),                  
+                  DecoratedBox(
+                    decoration: boxDeco(),
+                    child: decoLetras(letras[3]),
                   ),
                   SizedBox(
                     height: 52,
@@ -111,7 +200,7 @@ class _IndividualPageState extends State<IndividualPage> {
                   ),
                   DecoratedBox(
                     decoration: boxDeco(),
-                      child: letras('E'),
+                      child: decoLetras(letras[4]),
                   ),
                 ],
               )
@@ -129,6 +218,7 @@ class _IndividualPageState extends State<IndividualPage> {
                   SizedBox(
                     width: 220,
                     child: TextField(
+                      controller: _controller,
                       cursorColor: roxo,
                       textCapitalization: TextCapitalization.words,
                       decoration: respostaDeco("Digite aqui"),
@@ -138,7 +228,10 @@ class _IndividualPageState extends State<IndividualPage> {
                     child: IconButton(
                       icon: const Icon(Icons.send_rounded, size:22, color: amarelo2, fill: 0.1),
                       style: botaoEnviar(),
-                      onPressed: () {},
+                      onPressed: () {
+                        verificarPalavra(_controller.text.toLowerCase());
+                        _controller.clear();
+                      },
                     ),
                   ),
                 ],
@@ -154,7 +247,6 @@ class _IndividualPageState extends State<IndividualPage> {
               ),
             ),
 
-            //Lista de palavras
             Container(
               padding: EdgeInsets.only(left: 30, right: 30, top: 20, bottom: 0),
               decoration: BoxDecoration(
@@ -166,10 +258,11 @@ class _IndividualPageState extends State<IndividualPage> {
                     child: Column(
                         children: List.generate(numRows, (rowIndex) {
                         int wordIndex = rowIndex * numColumns + colIndex;
-                        if (wordIndex < words.length) {
-                          return wordBox(words[wordIndex], wordIndex);
+                        bool encontrada = palavrasEncontradas.contains(palavrasDoDia[wordIndex]);
+                        if (encontrada) {
+                          return wordBox(palavrasDoDia[wordIndex], wordIndex);
                         } else {
-                          return SizedBox(width: 100); // Espaço vazio, caso não haja palavra
+                          return wordBox("", wordIndex);
                         }
                       }),
                     ),
@@ -178,7 +271,13 @@ class _IndividualPageState extends State<IndividualPage> {
               ),
             ),
 
-            SizedBox(height: 10),
+            SizedBox(height: 30),
+
+          ElevatedButton(
+            onPressed: desistir,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text("Desistir"),
+          ),
        
 
           ],
@@ -191,30 +290,30 @@ class _IndividualPageState extends State<IndividualPage> {
   }
 
   Widget wordBox(String word, int index) {
-    bool isSpecial = index == 20; // Palavra 21 (índice começa do 0)
+      bool isSpecial = index == 20; // Palavra 21 (índice começa do 0)
 
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-      padding: EdgeInsets.only(left: 2, right: 2, bottom: 2, top: 2),
-      width: double.infinity, // Ocupa a largura disponível
-      decoration: BoxDecoration(
-        color: Colors.blueAccent,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: isSpecial ? Colors.yellow : Colors.white, width: isSpecial ? 3 : 1),
-        boxShadow: isSpecial
-            ? [BoxShadow(color: Colors.yellow, blurRadius: 8, spreadRadius: 2)]
-            : [],
-      ),
-      child: Center(
-        child: Text(
-          word,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
+      return Container(
+        margin: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        padding: EdgeInsets.only(left: 2, right: 2, bottom: 2, top: 2),
+        width: double.infinity, // Ocupa a largura disponível
+        decoration: BoxDecoration(
+          color: Colors.blueAccent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSpecial ? Colors.yellow : Colors.white, width: isSpecial ? 3 : 1),
+          boxShadow: isSpecial
+              ? [BoxShadow(color: Colors.yellow, blurRadius: 8, spreadRadius: 2)]
+              : [],
+        ),
+        child: Center(
+          child: Text(
+            word,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
+      );
+    }
+} 
