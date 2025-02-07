@@ -14,29 +14,6 @@ class CadastroPage extends StatefulWidget {
   _CadastroPageState createState() => _CadastroPageState();
 }
 
-Future<void> salvarUsuario(String nome, String email, String senha) async {
-  try {
-    // Criar usuário no Firebase Authentication
-    UserCredential userCredential = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email, password: senha);
-
-    // Salvar dados adicionais no Firestore
-    await FirebaseFirestore.instance
-        .collection('usuarios')
-        .doc(userCredential.user?.uid) // Salva usando o UID do Firebase
-        .set({
-      'nome': nome,
-      'email': email,
-      'senha': senha,
-      'data_criacao': Timestamp.now(),
-    });
-
-    print("Usuário salvo com sucesso!");
-  } catch (e) {
-    throw Exception("Erro inesperado: $e");
-  }
-}
-
 class _CadastroPageState extends State<CadastroPage> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -63,6 +40,31 @@ class _CadastroPageState extends State<CadastroPage> {
     _senhaController.dispose();
     _tapGestureRecognizer.dispose();
     super.dispose();
+  }
+
+  Future<void> salvarUsuario(String nome, String email, String senha) async {
+    try {
+      // Criar usuário no Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: senha);
+
+      // Salvar dados adicionais no Firestore
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(userCredential.user?.uid) // Salva usando o UID do Firebase
+          .set({
+        'nome': nome,
+        'email': email,
+        'senha': senha,
+        'pontuacao': 0, // Inicia com 0 pontos
+        'palavrasEncontradas': [],
+        'data_criacao': Timestamp.now(),
+      });
+
+      print("Usuário salvo com sucesso!");
+    } catch (e) {
+      throw Exception("Erro inesperado: $e");
+    }
   }
 
   void _gotologin() {
@@ -174,16 +176,6 @@ class _CadastroPageState extends State<CadastroPage> {
         child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              // // Texto de boas-vindas
-              // Container(
-              //   margin: const EdgeInsets.only(top: 30.0),
-              //   child: Stack(
-              //     children: <Widget>[
-              //       Text('Bem vindo ao', style: textoPrincipal1()),
-              //       Text('Bem vindo ao', style: textoPrincipal2()),
-              //     ],
-              //   ),
-              // ),
 
               // Imagem
               Container(
