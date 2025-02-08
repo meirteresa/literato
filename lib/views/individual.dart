@@ -20,8 +20,10 @@ class _IndividualPageState extends State<IndividualPage> {
   TextEditingController _controller = TextEditingController();
   List<String> letras = [];
   List<String> palavrasDoDia = [];
-  late List<String> palavrasEncontradas = [];
+  List<String> palavrasEncontradas = [];
   int pontuacao = 0;
+  bool isLoading = true;
+  bool partidaValida = true;
 
   @override
   void initState() {
@@ -30,23 +32,35 @@ class _IndividualPageState extends State<IndividualPage> {
     carregarProgressoUsuario();
   }
 
-    Future<void> carregarDadosDiarios() async {
+  Future<void> carregarDadosDiarios() async {
     String today = DateTime.now().toIso8601String().split("T")[0];
-    var doc = await FirebaseFirestore.instance.collection("daily_levels").doc(today).get();
+    var doc = await FirebaseFirestore.instance
+        .collection("daily_levels")
+        .doc(today)
+        .get();
     if (doc.exists) {
       setState(() {
         letras = List<String>.from(doc.data()?['letras'] ?? []);
-        palavrasDoDia = List<String>.from(doc.data()?['palavras']?.map((p) => p['palavra']) ?? []);
+        palavrasDoDia = List<String>.from(
+            doc.data()?['palavras']?.map((p) => p['palavra']) ?? []);
       });
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> carregarProgressoUsuario() async {
-    var userDoc = await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).get();
+    var userDoc = await FirebaseFirestore.instance
+        .collection("usuarios")
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .get();
     if (userDoc.exists) {
       setState(() {
-        palavrasEncontradas = List<String>.from(userDoc.data()?['palavrasEncontradas'] ?? []);
+        palavrasEncontradas =
+            List<String>.from(userDoc.data()?['palavrasEncontradas'] ?? []);
         pontuacao = userDoc.data()?['pontuacao'] ?? 0;
+        partidaValida = userDoc.data()?['partidaValida'] ?? true;
       });
     }
   }
@@ -58,7 +72,7 @@ class _IndividualPageState extends State<IndividualPage> {
         palavrasEncontradas.add(palavra);
         pontuacao += pontosGanhos;
       });
-      await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).update({
+      await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
         "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
         "pontuacao": FieldValue.increment(pontosGanhos)
       });
@@ -66,22 +80,17 @@ class _IndividualPageState extends State<IndividualPage> {
     }
   }
 
-  void verificarVitoria() {
+  void verificarVitoria() async {
     if (palavrasEncontradas.length == palavrasDoDia.length) {
       mostrarMensagem("Parabéns! Você encontrou todas as palavras!");
-      resetarJogo();
+      await FirebaseFirestore.instance
+          .collection("users")
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .update({"partidaValida": false}); // Atualiza Firebase
+      setState(() {
+        partidaValida = false;
+      });
     }
-  }
-
-  Future<void> resetarJogo() async {
-    setState(() {
-      palavrasEncontradas.clear();
-      pontuacao = 0;
-    });
-    await FirebaseFirestore.instance.collection("users").doc(FirebaseAuth.instance.currentUser?.uid).update({
-      "palavrasEncontradas": [],
-      "pontuacao": 0
-    });
   }
 
   void mostrarMensagem(String mensagem) {
@@ -101,192 +110,246 @@ class _IndividualPageState extends State<IndividualPage> {
     );
   }
 
-  void desistir() {
+  void desistir() async {
     mostrarMensagem("Você desistiu do desafio!");
-    resetarJogo();
+    await FirebaseFirestore.instance
+        .collection("usuarios")
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .update({"partidaValida": false}); // Atualiza Firebase
+    setState(() {
+      partidaValida = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    int numColumns = 3; // Número fixo de colunas
-    int numRows = 7;
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.purple[300], 
       systemNavigationBarColor: Colors.purple[300],
     ));
 
+if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
     return Scaffold(
       backgroundColor: const Color(0xFFA0D6B6),
       appBar: barraMenuIndividual(context),
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
 
-      body: SingleChildScrollView(
-        child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
+  return Scaffold(
+    backgroundColor: const Color(0xFFA0D6B6),
+    appBar: barraMenuIndividual(context),
+    body: partidaValida ? jogoUI() : telaFinalUI(),
+  );
+  }
 
-            Container(
-              margin: const EdgeInsets.only(top: 0, bottom: 0, right: 0, left: 0),
-              padding: const EdgeInsets.only(left: 80, right: 0),
-              decoration: boxPontos(),
-              child: Row(
+  Widget jogoUI(){
+    int numColumns = 3;// Número fixo de colunas
+    int numRows = 7;
+
+  return SingleChildScrollView(
+            child: Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(),
-                    child: pontos("PONTUAÇÃO:", 'MightySouly', 16, false),
-                  ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: Colors.white, thickness: 1.8),
-                  ),
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                      child: pontos("$pontuacao pontos", 'Lato', 15, true),
-                  ),
-                ],
-              )
-            ),
-            
-            Container(
-              margin: const EdgeInsets.only(left: 40, right: 40,top: 30, bottom: 0),
-              child: Text("Combine as letras e tente desvendar as 20 palavras secretas de hoje!", style: GoogleFonts.lato(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600), textAlign: TextAlign.center,),
-            ),
+                children: <Widget>[
 
-            // Letras
-            Container(
-              margin: const EdgeInsets.only(left: 40, right: 40,top: 40, bottom: 26),
-              padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-              decoration: BoxDecoration(
-                border: Border.all(width: 2.5, color: rosa1),
-                borderRadius: BorderRadius.circular(15),
-                color: Colors.white70,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                    child: decoLetras(letras[0]),
+                  Container(
+                    margin: const EdgeInsets.only(top: 0, bottom: 0, right: 0, left: 0),
+                    padding: const EdgeInsets.only(left: 80, right: 0),
+                    decoration: boxPontos(),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(),
+                          child: pontos("PONTUAÇÃO:", 'MightySouly', 16, false),
+                        ),
+                        SizedBox(
+                          height: 52,
+                          child: VerticalDivider(color: Colors.white, thickness: 1.8),
+                        ),
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                            child: pontos("$pontuacao pontos", 'Lato', 15, true),
+                        ),
+                      ],
+                    )
                   ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: rosa1, thickness: 2.5),
+                  
+                  Container(
+                    margin: const EdgeInsets.only(left: 40, right: 40,top: 30, bottom: 0),
+                    child: Text("Combine as letras e tente desvendar as 20 palavras secretas de hoje!", style: GoogleFonts.lato(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600), textAlign: TextAlign.center,),
                   ),
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                    child: decoLetras(letras[1]),
-                  ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: rosa1, thickness: 2.5),
-                  ),                  
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                    child: decoLetras(letras[2]),
-                  ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: rosa1, thickness: 2.5),
-                  ),                  
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                    child: decoLetras(letras[3]),
-                  ),
-                  SizedBox(
-                    height: 52,
-                    child: VerticalDivider(color: rosa1, thickness: 2.5),
-                  ),
-                  DecoratedBox(
-                    decoration: boxDeco(),
-                      child: decoLetras(letras[4]),
-                  ),
-                ],
-              )
-            ),
 
-            Container(
-              margin: const EdgeInsets.only(top: 10, bottom: 30.0),
-              width: 285.0,
+                  // Letras
+                  Container(
+                    margin: const EdgeInsets.only(left: 40, right: 40,top: 40, bottom: 26),
+                    padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(width: 2.5, color: rosa1),
+                      borderRadius: BorderRadius.circular(15),
+                      color: Colors.white70,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                          child: decoLetras(letras[0]),
+                        ),
+                        SizedBox(
+                          height: 52,
+                          child: VerticalDivider(color: rosa1, thickness: 2.5),
+                        ),
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                          child: decoLetras(letras[1]),
+                        ),
+                        SizedBox(
+                          height: 52,
+                          child: VerticalDivider(color: rosa1, thickness: 2.5),
+                        ),                  
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                          child: decoLetras(letras[2]),
+                        ),
+                        SizedBox(
+                          height: 52,
+                          child: VerticalDivider(color: rosa1, thickness: 2.5),
+                        ),                  
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                          child: decoLetras(letras[3]),
+                        ),
+                        SizedBox(
+                          height: 52,
+                          child: VerticalDivider(color: rosa1, thickness: 2.5),
+                        ),
+                        DecoratedBox(
+                          decoration: boxDeco(),
+                            child: decoLetras(letras[4]),
+                        ),
+                      ],
+                    )
+                  ),
 
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                spacing: 15,
-                // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  SizedBox(
-                    width: 220,
-                    child: TextField(
-                      controller: _controller,
-                      cursorColor: roxo,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: respostaDeco("Digite aqui"),
+                  // TextField
+                  Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 30.0),
+                    width: 285.0,
+
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      spacing: 15,
+                      // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        SizedBox(
+                          width: 220,
+                          child: TextField(
+                            controller: _controller,
+                            cursorColor: roxo,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: respostaDeco("Digite aqui"),
+                          ),
+                        ),
+                        SizedBox(
+                          child: IconButton(
+                            icon: const Icon(Icons.send_rounded, size:22, color: amarelo2, fill: 0.1),
+                            style: botaoEnviar(),
+                            onPressed: () {
+                              verificarPalavra(_controller.text.toLowerCase());
+                              _controller.clear();
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  ),
+
+                  Container(
+                    width: 315,
+                    height: 20,
+                    margin: const EdgeInsets.only(left: 0, right: 0,top: 20, bottom: 0),
+                    child: Text("Palavras encontradas: ", style: GoogleFonts.lato(color: roxo, fontSize: 15, fontWeight: FontWeight.w900),
                     ),
                   ),
-                  SizedBox(
-                    child: IconButton(
-                      icon: const Icon(Icons.send_rounded, size:22, color: amarelo2, fill: 0.1),
-                      style: botaoEnviar(),
-                      onPressed: () {
-                        verificarPalavra(_controller.text.toLowerCase());
-                        _controller.clear();
-                      },
+                  
+                  //Caixa de palavras encontradas
+                  Container(
+                    padding: EdgeInsets.only(left: 30, right: 30, top: 15, bottom: 0),
+                    decoration: BoxDecoration(
+                      border: null,
                     ),
-                  ),
-                ],
-              ),
-
-            ),
-
-            Container(
-              width: 315,
-              height: 20,
-              margin: const EdgeInsets.only(left: 0, right: 0,top: 40, bottom: 0),
-              child: Text("Palavras encontradas: ", style: GoogleFonts.lato(color: roxo, fontSize: 15, fontWeight: FontWeight.w900),
-              ),
-            ),
-
-            Container(
-              padding: EdgeInsets.only(left: 30, right: 30, top: 20, bottom: 0),
-              decoration: BoxDecoration(
-                border: null,
-              ),
-              child: Row(
-                children: List.generate(numColumns, (colIndex) {
-                  return Expanded(
-                    child: Column(
-                        children: List.generate(numRows, (rowIndex) {
-                        int wordIndex = rowIndex * numColumns + colIndex;
-                        bool encontrada = palavrasEncontradas.contains(palavrasDoDia[wordIndex]);
-                        if (encontrada) {
-                          return wordBox(palavrasDoDia[wordIndex], wordIndex);
-                        } else {
-                          return wordBox("", wordIndex);
-                        }
+                    child: Row(
+                      children: List.generate(numColumns, (colIndex) {
+                        return Expanded(
+                          child: Column(
+                              children: List.generate(numRows, (rowIndex) {
+                              int wordIndex = rowIndex * numColumns + colIndex;
+                              bool encontrada = palavrasEncontradas.contains(palavrasDoDia[wordIndex]);
+                              if (encontrada) {
+                                return wordBox(palavrasDoDia[wordIndex], wordIndex);
+                              } else {
+                                return wordBox("", wordIndex);
+                              }
+                            }),
+                          ),
+                        );
                       }),
                     ),
-                  );
-                }),
+                  ),
+
+                  SizedBox(height: 40),
+
+                  ElevatedButton(
+                      onPressed: desistir,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),),
+                      child: Text("Desistir", style: TextStyle(fontSize: 14.0, color: Colors.white),),
+                  ),
+                  
+
+                  SizedBox(height: 20),
+            
+                ],
+
               ),
             ),
+          );
+  }
 
-            SizedBox(height: 30),
-
-          ElevatedButton(
-            onPressed: desistir,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text("Desistir"),
+  Widget telaFinalUI(){
+    return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Fim do Desafio!", style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
+              SizedBox(height: 20),
+              Text("Sua pontuação final: $pontuacao", style: GoogleFonts.lato(fontSize: 18)),
+              SizedBox(height: 20),
+              Text("Palavras encontradas:", style: GoogleFonts.lato(fontSize: 18)),
+              SizedBox(height: 10),
+              Wrap(
+                spacing: 8.0,
+                children: palavrasEncontradas.map((palavra) {
+                  return Chip(label: Text(palavra));
+                }).toList(),
+              ),
+              SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: roxo),
+                child: Text("Voltar", style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-       
-
-          ],
-
-        ),
-        ),
-      ),
-
-    );
+        );
+      }
   }
 
   Widget wordBox(String word, int index) {
@@ -315,5 +378,4 @@ class _IndividualPageState extends State<IndividualPage> {
           ),
         ),
       );
-    }
-} 
+  } 
