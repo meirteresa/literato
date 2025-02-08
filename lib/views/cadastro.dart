@@ -58,6 +58,7 @@ class _CadastroPageState extends State<CadastroPage> {
         'senha': senha,
         'pontuacao': 0, // Inicia com 0 pontos
         'palavrasEncontradas': [],
+        'partida_valida': true,
         'data_criacao': Timestamp.now(),
       });
 
