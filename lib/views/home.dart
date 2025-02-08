@@ -38,17 +38,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Container(
-            //   margin: const EdgeInsets.only(top: 50.0, bottom: 60.0,left: 40.0, right: 40.0),
-            //   child: Stack(
-            //     children: <Widget>[
-            //       Text(
-            //         "Jogue individualmente e tente desvendar as 20 palavras secretas do dia!", 
-            //         style: TextStyle(color: Colors.white, fontSize: 18), textAlign: TextAlign.justify,),
-            //     ],
-            //   ),
-            // ),
-
             SizedBox(
               width: 200.0,
               height: 60.0,
