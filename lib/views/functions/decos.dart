@@ -254,7 +254,18 @@ dynamic boxDeco(){
         );
 }
 
-dynamic letras(String letra){
+dynamic letrasBox(String letra){
+  DecoratedBox(
+    decoration: boxDeco(),
+    child: decoLetras(letra),
+  );
+  SizedBox(
+    height: 52,
+    child: VerticalDivider(color: rosa1, thickness: 2.5),
+  );
+}
+
+dynamic decoLetras(String letra){
   return Padding(
           padding: EdgeInsets.all(8.0),
           child: Text(letra, style: TextStyle(
