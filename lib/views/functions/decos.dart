@@ -180,6 +180,36 @@ dynamic corBorda(bool ehAmarelo){
   return cor;
 }
 
+dynamic sair(BuildContext context){
+  var deco = Dialog(
+    child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const Text('Deseja sair da conta?'),
+                    const SizedBox(height: 15),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/login');
+                      },
+                      child: const Text('Sair'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Cancelar'),
+                    ),
+                  ],
+                ),
+    ),
+   );
+
+   return deco;
+}
+
 dynamic barraMenu(BuildContext context){
   var barraMenu = AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -200,7 +230,10 @@ dynamic barraMenu(BuildContext context){
               iconSize: 32,
             ),
             IconButton(
-              onPressed: () {},
+              onPressed: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) => sair(context),
+              ),
               icon: Icon(Icons.account_circle_sharp, color: branco),
               iconSize: 32,
             ),
