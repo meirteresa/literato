@@ -30,6 +30,7 @@ Future<bool> verificarLogin(String email, String senha) async {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  bool _senhaVisivel = false;
   
   late TapGestureRecognizer _tapGestureRecognizer;
 
@@ -112,17 +113,6 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: <Widget>[
 
-              // // Texto de boas-vindas
-              // Container(
-              //   margin: const EdgeInsets.only(top: 30.0),
-              //   child: Stack(
-              //     children: <Widget>[
-              //       Text('Bem vindo ao', style: textoPrincipal1()),
-              //       Text('Bem vindo ao', style: textoPrincipal2()),
-              //     ],
-              //   ),
-              // ),
-
             //imagem
             Container(
               margin: const EdgeInsets.only(top: 50.0, bottom: 0.0),
@@ -164,9 +154,24 @@ class _LoginPageState extends State<LoginPage> {
               width: 300.0,
               child: TextField(
                 controller: _senhaController,
-                obscureText: true, 
+                obscureText: ! _senhaVisivel, 
                 cursorColor: Colors.black54,
-                decoration: inputDecoration(null, _senhaError, "Senha", Icons.lock_open),
+                decoration: inputDecoration(
+                  null, 
+                  _senhaError, 
+                  "Senha", 
+                  Icons.lock_open,
+                  IconButton(
+                    icon: Icon(_senhaVisivel 
+                      ? Icons.visibility 
+                      : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _senhaVisivel = !_senhaVisivel;
+                      });
+                    },
+                  )
+                ),
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(8), 
                 ],
