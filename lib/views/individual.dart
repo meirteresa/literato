@@ -4,10 +4,9 @@ import 'package:literato/views/functions/decos.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:literato/controllers/controllers.dart';
 
 var amarelo = Color(0xFFF9BF64);
-var rosa = Color(0xF4F08484);
-var roxo = Colors.purple[300];
 
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key});
@@ -17,6 +16,7 @@ class IndividualPage extends StatefulWidget {
 }
 
 class _IndividualPageState extends State<IndividualPage> {
+  final IndividualPageController _controllerPage = IndividualPageController();
   TextEditingController _controller = TextEditingController();
   List<String> letras = [];
   List<String> palavrasDoDia = [];
@@ -24,90 +24,80 @@ class _IndividualPageState extends State<IndividualPage> {
   int pontuacao = 0;
   bool isLoading = true;
   bool partidaValida = true;
+  final FocusNode _focusNode = FocusNode();
+
+  void _updateLetras(List<String> letrasAtualizadas) {
+    setState(() {
+      letras = letrasAtualizadas;
+    });
+  }
+
+  void _updatePalavrasDoDia(List<String> palavrasDoDiaAtualizadas) {
+    setState(() {
+      palavrasDoDia = palavrasDoDiaAtualizadas;
+    });
+  }
+
+  void _updatePalavrasEncontradas(List<String> palavrasEncontradasAtualizadas) {
+    setState(() {
+      palavrasEncontradas = palavrasEncontradasAtualizadas;
+    });
+  }  
+
+  void _updatePontuacao(int pontuacaoAtualizada) {
+    setState(() {
+      pontuacao = pontuacaoAtualizada;
+    });
+  }  
+
+  void _updatePartidaValida(bool estadoPartida) {
+    setState(() {
+      partidaValida = estadoPartida;
+    });
+  }  
+
+  void _updateCarregamento(bool carregamento) {
+    setState(() {
+      isLoading = carregamento;
+    });
+  }  
 
   @override
   void initState() {
     super.initState();
-    carregarDadosDiarios();
-    carregarProgressoUsuario();
+
+    _controllerPage.carregarDadosDiarios(_updateLetras, _updatePalavrasDoDia).then((_) {
+    _controllerPage.carregarProgressoUsuario(
+      _updatePalavrasEncontradas, 
+      _updatePontuacao, 
+      _updatePartidaValida, 
+      _updateCarregamento, 
+      palavrasDoDia
+    );
+  });
   }
 
-  Future<void> carregarDadosDiarios() async {
-    String today = DateTime.now().toIso8601String().split("T")[0];
-    var doc = await FirebaseFirestore.instance
-        .collection("daily_levels")
-        .doc(today)
-        .get();
-    if (doc.exists) {
+  Future<void> verificarPalavra(String palavra) async {
+    _focusNode.unfocus();
+    if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
+      int pontosGanhos = await _controllerPage.carregarPontuacaoPalavra(palavra) ?? 0;
+      bool especial = palavra == palavrasDoDia.last;
+
+      await _controllerPage.confirmapontuacao(context, palavra, pontosGanhos, especial);
+
       setState(() {
-        letras = List<String>.from(doc.data()?['letras'] ?? []);
-        palavrasDoDia = List<String>.from(
-            doc.data()?['palavras']?.map((p) => p['palavra']) ?? []);
+        palavrasEncontradas.add(palavra);
+        pontuacao += pontosGanhos;
       });
-    }
-  }
 
-  Future<void> carregarProgressoUsuario() async {
-    var userDoc = await FirebaseFirestore.instance
-        .collection("usuarios")
-        .doc(FirebaseAuth.instance.currentUser?.uid)
-        .get();
-    if (userDoc.exists) {
-      setState(() {
-        palavrasEncontradas =
-            List<String>.from(userDoc.data()?['palavrasEncontradas'] ?? []);
-        pontuacao = userDoc.data()?['pontuacao'] ?? 0;
-        partidaValida = userDoc.data()?['partida_valida'] ?? true;
+      await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
+        "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
+        "pontuacao": FieldValue.increment(pontosGanhos)
       });
-    }
-    setState(() {
-      isLoading = false;
-    });
-  }
 
-Future<void> verificarPalavra(String palavra) async {
-  if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
-    int pontosGanhos = 5 + (palavra.length - palavrasDoDia.first.length) * 5;
-    bool especial = palavra == palavrasDoDia.last;
-
-    await confirmapontuacao(context, palavra, pontosGanhos, especial);
-
-    setState(() {
-      palavrasEncontradas.add(palavra);
-      pontuacao += pontosGanhos;
-    });
-
-    await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
-      "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
-      "pontuacao": FieldValue.increment(pontosGanhos)
-    });
-
-    verificarVitoria();
-  }
-  mostrarMensagem(context, "Palavra errada! Continue tentando 😉");
-}
-
-  void verificarVitoria() async {
-    bool confirmou = await confirmaVitoria(context);
-    
-    if (confirmou) {
-      mostrarMensagem(context, "Parabéns! Você venceu!");
-      
-      setState(() {
-        partidaValida = false;
-      });
-    }
-  }
-
-  void desistir() async {
-    bool confirmou = await confirmaDesistencia(context);
-    
-    if (confirmou) {
-      mostrarMensagem(context, "Você desistiu do desafio!");
-      
-      setState(() {
-        partidaValida = false;
-      });
+      _controllerPage.verificarVitoria(context, _updatePartidaValida, palavrasDoDia, palavrasEncontradas);
+    }else{
+      _controllerPage.mostrarMensagem(context, "Palavra errada! Continue tentando 😉");
     }
   }
 
@@ -122,7 +112,7 @@ Future<void> verificarPalavra(String palavra) async {
 if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
     return Scaffold(
       backgroundColor: const Color(0xFFA0D6B6),
-      appBar: barraMenuIndividual(context),
+      appBar: _controllerPage.barraMenuIndividual(context),
       body: Center(
         child: CircularProgressIndicator(),
       ),
@@ -131,7 +121,7 @@ if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
 
   return Scaffold(
     backgroundColor: const Color(0xFFA0D6B6),
-    appBar: barraMenuIndividual(context),
+    appBar: _controllerPage.barraMenuIndividual(context),
     body: partidaValida ? jogoUI() : telaFinalUI(),
   );
   }
@@ -240,6 +230,7 @@ if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
                           width: 220,
                           child: TextField(
                             controller: _controller,
+                            focusNode: _focusNode,
                             cursorColor: roxo,
                             textCapitalization: TextCapitalization.words,
                             decoration: respostaDeco("Digite aqui"),
@@ -296,7 +287,10 @@ if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
                   SizedBox(height: 40),
 
                   ElevatedButton(
-                      onPressed: desistir,
+                      onPressed: () {
+                        _focusNode.unfocus();
+                        _controllerPage.desistir(context, _updatePartidaValida);
+                      },
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),),
                       child: Text("Desistir", style: TextStyle(fontSize: 14.0, color: Colors.white),),
                   ),
