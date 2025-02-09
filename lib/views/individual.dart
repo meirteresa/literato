@@ -80,6 +80,8 @@ class _IndividualPageState extends State<IndividualPage> {
   Future<void> verificarPalavra(String palavra) async {
     _focusNode.unfocus();
 
+    palavra = palavra.trim();
+
     if(RegExp(r'[áàâãéèêíïóôõöúçñ]').hasMatch(palavra)){
       _controllerPage.mostrarMensagem(context, "Lembre-se que acentos e cedilha não são aceitos! Tente escrever a palavra sem ele(s). ✍️");
       return;
