@@ -45,9 +45,6 @@ class _IndividualPageState extends State<IndividualPage> {
             doc.data()?['palavras']?.map((p) => p['palavra']) ?? []);
       });
     }
-    setState(() {
-      isLoading = false;
-    });
   }
 
   Future<void> carregarProgressoUsuario() async {
@@ -60,65 +57,58 @@ class _IndividualPageState extends State<IndividualPage> {
         palavrasEncontradas =
             List<String>.from(userDoc.data()?['palavrasEncontradas'] ?? []);
         pontuacao = userDoc.data()?['pontuacao'] ?? 0;
-        partidaValida = userDoc.data()?['partidaValida'] ?? true;
+        partidaValida = userDoc.data()?['partida_valida'] ?? true;
       });
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  Future<void> verificarPalavra(String palavra) async {
-    if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
-      int pontosGanhos = 5 + (palavra.length - palavrasDoDia.first.length) * 5;
-      setState(() {
-        palavrasEncontradas.add(palavra);
-        pontuacao += pontosGanhos;
-      });
-      await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
-        "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
-        "pontuacao": FieldValue.increment(pontosGanhos)
-      });
-      verificarVitoria();
-    }
+Future<void> verificarPalavra(String palavra) async {
+  if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
+    int pontosGanhos = 5 + (palavra.length - palavrasDoDia.first.length) * 5;
+    bool especial = palavra == palavrasDoDia.last;
+
+    await confirmapontuacao(context, palavra, pontosGanhos, especial);
+
+    setState(() {
+      palavrasEncontradas.add(palavra);
+      pontuacao += pontosGanhos;
+    });
+
+    await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
+      "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
+      "pontuacao": FieldValue.increment(pontosGanhos)
+    });
+
+    verificarVitoria();
   }
+  mostrarMensagem(context, "Palavra errada! Continue tentando 😉");
+}
 
   void verificarVitoria() async {
-    if (palavrasEncontradas.length == palavrasDoDia.length) {
-      mostrarMensagem("Parabéns! Você encontrou todas as palavras!");
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .update({"partidaValida": false}); // Atualiza Firebase
+    bool confirmou = await confirmaVitoria(context);
+    
+    if (confirmou) {
+      mostrarMensagem(context, "Parabéns! Você venceu!");
+      
       setState(() {
         partidaValida = false;
       });
     }
   }
 
-  void mostrarMensagem(String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: "OK",
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-  }
-
   void desistir() async {
-    mostrarMensagem("Você desistiu do desafio!");
-    await FirebaseFirestore.instance
-        .collection("usuarios")
-        .doc(FirebaseAuth.instance.currentUser?.uid)
-        .update({"partidaValida": false}); // Atualiza Firebase
-    setState(() {
-      partidaValida = false;
-    });
+    bool confirmou = await confirmaDesistencia(context);
+    
+    if (confirmou) {
+      mostrarMensagem(context, "Você desistiu do desafio!");
+      
+      setState(() {
+        partidaValida = false;
+      });
+    }
   }
 
   @override
@@ -321,35 +311,46 @@ if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
           );
   }
 
-  Widget telaFinalUI(){
-    return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Fim do Desafio!", style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
-              Text("Sua pontuação final: $pontuacao", style: GoogleFonts.lato(fontSize: 18)),
-              SizedBox(height: 20),
-              Text("Palavras encontradas:", style: GoogleFonts.lato(fontSize: 18)),
-              SizedBox(height: 10),
-              Wrap(
-                spacing: 8.0,
-                children: palavrasEncontradas.map((palavra) {
-                  return Chip(label: Text(palavra));
-                }).toList(),
-              ),
-              SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: roxo),
-                child: Text("Voltar", style: TextStyle(color: Colors.white)),
-              ),
-            ],
+  Widget telaFinalUI() {
+    String mensagemFinal = palavrasEncontradas.length == palavrasDoDia.length
+        ? "Parabéns! Você acertou todas \nas palavras e ganhou o jogo! 🥇"
+        : "Você desistiu da partida! \n\n☹️";
+
+    return SingleChildScrollView(
+      child: Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          SizedBox(height: 70),
+          Text("Fim do Desafio!", style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
+          SizedBox(height: 10),
+          Text(mensagemFinal, style: GoogleFonts.lato(fontSize: 18, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
+          SizedBox(height: 40),
+          Text("Pontuação final:", style: GoogleFonts.lato(fontSize: 18)),
+          Text("$pontuacao pontos", style: GoogleFonts.lato(fontSize: 22, fontWeight: FontWeight.w800, color: roxo)),
+          SizedBox(height: 40),
+          Text("Palavras encontradas:", style: GoogleFonts.lato(fontSize: 18)),
+          SizedBox(height: 10),
+          Wrap(
+            spacing: 8.0,
+            children: palavrasEncontradas.map((palavra) {
+              return Chip(label: Text(palavra));
+            }).toList(),
           ),
-        );
-      }
+          SizedBox(height: 50),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: roxo),
+            child: Text("Voltar", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+
   }
 
   Widget wordBox(String word, int index) {
