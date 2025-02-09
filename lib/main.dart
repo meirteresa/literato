@@ -6,6 +6,7 @@ import 'package:literato/views/cadastro.dart';
 import 'package:literato/views/home.dart';
 import 'package:literato/views/individual.dart';
 import 'package:literato/views/multiplayer.dart';
+import 'package:literato/views/help.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -54,5 +55,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
