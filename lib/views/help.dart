@@ -86,9 +86,7 @@ class _HelpPageState extends State<HelpPage>{
 
 2️⃣ As palavras precisam ter pelo menos 4 letras. 
 
-3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao e açao vira acao. 
-
-Apesar disso, a cedilha (ç) é considerada uma letra, portanto será aceita. Então açafrão deve ser escrita como açafrao.
+3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao e açao vira acao.
 
 4️⃣ A maioria dos verbos vai estar no infinitivo, mas alguns também podem aparecer no particípio.
 
