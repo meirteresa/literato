@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/functions/decos.dart';
-const amarelo = Color(0xFFF9BF64);
-const rosa = Color(0xF4F08484);
+import 'package:literato/controllers/controllers.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,6 +11,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final HomeController _controller = HomeController();
+  
   @override
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
@@ -19,7 +20,7 @@ class _HomePageState extends State<HomePage> {
     ));
     return Scaffold(
       backgroundColor: const Color(0xFFFBF6A4),
-      appBar: barraMenu(context),
+      appBar: _controller.barraMenu(context),
 
       body: SingleChildScrollView(
         child: Center(
@@ -53,7 +54,7 @@ class _HomePageState extends State<HomePage> {
                   ]
                 ),
                 child: ElevatedButton.icon(
-                  style: botaoModoJogo(rosa, false),
+                  style: botaoModoJogo(rosa1, false),
                   onPressed:() {
                     Navigator.pushNamed(context, '/individual');
                   }, 
@@ -83,7 +84,7 @@ class _HomePageState extends State<HomePage> {
                   onPressed:() {
                     Navigator.pushNamed(context, '/multiplayer');
                   }, 
-                  icon: const Icon(Icons.people, size:26, color: rosa),
+                  icon: const Icon(Icons.people, size:26, color: rosa1),
                   label: const Text('MULTIPLAYER'),
                 ),
               ),
