@@ -2,10 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/functions/decos.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
-
+import 'package:literato/controllers/controllers.dart';
 
 class CadastroPage extends StatefulWidget {
   const CadastroPage({super.key});
@@ -15,6 +12,7 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
+  final UsuarioController _controller = UsuarioController();
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
@@ -25,14 +23,29 @@ class _CadastroPageState extends State<CadastroPage> {
   String? _nomeError;
   String? _emailError;
   String? _senhaError;
-  bool _isCheckingEmail = false;
-  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     _tapGestureRecognizer = TapGestureRecognizer()..onTap = _gotologin;
   }
+
+  void _updateNomeError(String? error) {
+    setState(() {
+      _nomeError = error;
+    });
+  }
+  void _updateEmailError(String? error) {
+    setState(() {
+      _emailError = error;
+    });
+  }
+  void _updateSenhaError(String? error) {
+    setState(() {
+      _senhaError = error;
+    });
+  }
+
 
   @override
   void dispose() {
@@ -43,129 +56,8 @@ class _CadastroPageState extends State<CadastroPage> {
     super.dispose();
   }
 
-  Future<void> salvarUsuario(String nome, String email, String senha) async {
-    try {
-      // Criar usuário no Firebase Authentication
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: senha);
-
-      // Salvar dados adicionais no Firestore
-      await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(userCredential.user?.uid) // Salva usando o UID do Firebase
-          .set({
-        'nome': nome,
-        'email': email,
-        'senha': senha,
-        'pontuacao': 0, // Inicia com 0 pontos
-        'palavrasEncontradas': [],
-        'partida_valida': true,
-        'data_criacao': Timestamp.now(),
-      });
-
-      print("Usuário salvo com sucesso!");
-    } catch (e) {
-      throw Exception("Erro inesperado: $e");
-    }
-  }
-
   void _gotologin() {
     Navigator.pushNamed(context, '/login');
-  }
-
-  Future<void> _checkEmail(String email) async {
-    setState(() {
-      _isCheckingEmail = true;
-      _emailError = null; // Limpa o erro antes de verificar
-    });
-
-    try {
-      // Consulta o Firestore para verificar se o e-mail já está cadastrado
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('usuarios')
-          .where('email', isEqualTo: email)
-          .get();
-
-      if (querySnapshot.docs.isNotEmpty) {
-        setState(() {
-          _emailError = 'Este e-mail já está cadastrado.';
-        });
-      }
-    } catch (e) {
-      print("Erro ao verificar e-mail: $e");
-    } finally {
-      setState(() {
-        _isCheckingEmail = false;
-      });
-    }
-  }
-
-  void _onEmailChanged(String value) {
-    final error = _validateEmail(value);
-    if (error == null) {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 150), () {
-        _checkEmail(value);
-      });
-    } else {
-      setState(() {
-        _emailError = error;
-      });
-    }
-  }
-
-  // Validação do nome
-  String? _validateNome(String nome) {
-    if (nome.isEmpty) {
-      return 'O nome não pode estar vazio.';
-    }
-    if (!RegExp(r'^[a-zA-ZÀ-ÿ\s]{1,50}$').hasMatch(nome)) {
-      return 'O nome deve conter apenas letras e espaços.';
-    }
-    return null;
-  }
-
-  // Validação do email
-  String? _validateEmail(String email) {
-    if (email.isEmpty) {
-      return 'O email não pode estar vazio.';
-    }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-      return 'Digite um email válido.';
-    }
-    return null;
-  }
-
-  // Validação da senha
-  String? _validateSenha(String senha) {
-    if (senha.isEmpty) {
-      return 'A senha não pode estar vazia.';
-    }
-    if (!RegExp(r'^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$').hasMatch(senha)) {
-      return 'A senha deve conter 8 caracteres, uma letra maiúscula, um número e um caractere especial.';
-    }
-    return null;
-  }
-
-  // Função para validar todos os campos
-  void _validateAndSubmit() {
-    setState(() {
-      _nomeError = _validateNome(_nomeController.text);
-      _emailError ??= _validateEmail(_emailController.text);
-      _senhaError = _validateSenha(_senhaController.text);
-    });
-
-    if (_nomeError == null && _emailError == null && _senhaError == null) {
-      salvarUsuario(
-        _nomeController.text,
-        _emailController.text,
-        _senhaController.text,
-      ).then((_) {
-        Navigator.pushNamed(context, '/homepage'); // Navega para a página inicial
-      }).catchError((error) {
-        print("Erro: $error");
-      });
-    }
   }
 
   @override
@@ -223,7 +115,9 @@ class _CadastroPageState extends State<CadastroPage> {
                 width: 300.0,
                 child: TextField(
                   controller: _emailController,
-                  onChanged: _onEmailChanged,
+                  onChanged: (value) {
+                    _controller.onEmailChanged(value, _updateEmailError);
+                  },
                   decoration: inputDecoration(null, _emailError, "Email", Icons.email_outlined),
                 ),
               ),
@@ -262,7 +156,13 @@ class _CadastroPageState extends State<CadastroPage> {
               // Botão de cadastro
               ElevatedButton(
                 style: botaoEntrar(),
-                onPressed: _validateAndSubmit,
+                onPressed: () {
+                  final nome = _nomeController.text;
+                  final email = _emailController.text;
+                  final senha = _senhaController.text;
+
+                  _controller.salvarUsuario(context, nome, email, senha, _updateNomeError, _updateEmailError, _updateSenhaError);
+                },
                 child: const Text('Cadastrar'),
               ),
 
