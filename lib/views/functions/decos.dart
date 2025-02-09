@@ -220,7 +220,7 @@ dynamic barraMenu(BuildContext context){
           backgroundColor: Colors.purple[300],
           leading: IconButton(
             icon: Icon(Icons.help_outline_rounded, color: branco),
-            onPressed: () {},
+            onPressed: () => Navigator.pushNamed(context, '/help'),
             iconSize: 32,
           ),
           actions: [
@@ -238,6 +238,28 @@ dynamic barraMenu(BuildContext context){
               iconSize: 32,
             ),
           ],
+          title: Image.asset('images/logo5.png', fit: BoxFit.fill, height: 68),
+          centerTitle: true,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(0),
+              bottomRight: Radius.circular(0),
+            )
+          ),
+      );
+
+  return barraMenu;
+}
+
+dynamic barraMenuAjuda(BuildContext context){
+  var barraMenu = AppBar(
+          toolbarHeight: 80,
+          backgroundColor: Colors.purple[300],
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: branco),
+            onPressed: () => Navigator.of(context).pop(),
+            iconSize: 32,
+          ),
           title: Image.asset('images/logo5.png', fit: BoxFit.fill, height: 68),
           centerTitle: true,
           shape: RoundedRectangleBorder(
