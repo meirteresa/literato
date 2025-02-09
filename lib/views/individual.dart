@@ -79,6 +79,27 @@ class _IndividualPageState extends State<IndividualPage> {
 
   Future<void> verificarPalavra(String palavra) async {
     _focusNode.unfocus();
+
+    if(RegExp(r'[áàâãéèêíïóôõöúçñ]').hasMatch(palavra)){
+      _controllerPage.mostrarMensagem(context, "Lembre-se que acentos e cedilha não são aceitos! Tente escrever a palavra sem ele(s). ✍️");
+      return;
+    }
+
+    if(palavrasEncontradas.contains(palavra)){
+      _controllerPage.mostrarMensagem(context, "Você já encontrou essa palavra! Continue tentando 😉");
+      return;
+    }
+
+    if(palavra.length < 4){
+      _controllerPage.mostrarMensagem(context, "A palavra ter pelo menos 4 letras! 📏");
+      return;
+    }
+
+    if (!palavra.split('').every((letra) => letras.contains(letra))){
+      _controllerPage.mostrarMensagem(context, "A palavra digitada contém letra(s) que não foram sorteadas. Tente novamente! 🔤");
+      return;
+    }
+
     if (palavrasDoDia.contains(palavra) && !palavrasEncontradas.contains(palavra)) {
       int pontosGanhos = await _controllerPage.carregarPontuacaoPalavra(palavra) ?? 0;
       bool especial = palavra == palavrasDoDia.last;
