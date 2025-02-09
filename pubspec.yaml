@@ -38,6 +38,7 @@ dependencies:
   cloud_firestore: ^5.6.2
   firebase_auth: ^5.4.1
   google_fonts: ^6.2.1
+  flutter_exit_app: ^1.1.2
 
 dev_dependencies:
   flutter_test:
