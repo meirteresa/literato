@@ -75,6 +75,7 @@ class _IndividualPageState extends State<IndividualPage> {
       palavrasDoDia
     );
   });
+    ConnectionController.checaConexao(context);
   }
 
   Future<void> verificarPalavra(String palavra) async {
