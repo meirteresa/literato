@@ -88,6 +88,8 @@ class _HelpPageState extends State<HelpPage>{
 
 3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao e açao vira acao. 
 
+Apesar disso, a cedilha (ç) é considerada uma letra, portanto será aceita. Então açafrão deve ser escrita como açafrao.
+
 4️⃣ A maioria dos verbos vai estar no infinitivo, mas alguns também podem aparecer no particípio.
 
 5️⃣ Plurais não são válidos. 
