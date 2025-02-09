@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:literato/views/functions/decos.dart';
+import 'package:flutter_exit_app/flutter_exit_app.dart';
 // import 'package:google_maps_flutter/google_maps_flutter.dart';
 // import 'package:permission_handler/permission_handler.dart';
 // import 'package:geolocator/geolocator.dart';
@@ -160,7 +161,6 @@ class UsuarioController {
 }
 
 class HomeController {
-
   dynamic sair(BuildContext context){
     var deco = Dialog(
       child: Padding(
@@ -269,6 +269,49 @@ class HomeController {
                 ),
       ),
     ];
+  }
+
+  DateTime ? lastPressed;
+
+  Future<bool> sairDoApp(BuildContext context) async {
+    if (lastPressed == null || DateTime.now().difference(lastPressed!) > Duration(seconds: 2)) {
+      lastPressed = DateTime.now();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pressione novamente para sair'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return false;
+    }
+
+    return await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            actionsAlignment: MainAxisAlignment.center,
+            title: Text('Sair do Aplicativo', style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
+            content: Text('Tem certeza que gostaria de sair do Literato? ☹️', style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14)),
+            actions: 
+            [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text('Cancelar', style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                    FlutterExitApp.exitApp();
+                    },
+                    child: Text('Sair', style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+                  ), 
+                ],
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
 }
