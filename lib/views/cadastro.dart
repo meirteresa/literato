@@ -18,6 +18,7 @@ class _CadastroPageState extends State<CadastroPage> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  bool _senhaVisivel = false;
 
   late TapGestureRecognizer _tapGestureRecognizer;
 
@@ -229,13 +230,29 @@ class _CadastroPageState extends State<CadastroPage> {
 
               // Campo Senha
               Container(
-                margin: const EdgeInsets.only(top: 15.0, bottom: 40.0),
+                margin: const EdgeInsets.only(top: 15.0, bottom: 10.0),
                 width: 300.0,
-                height: 100.0,
+                height: 150.0,
                 child: TextField(
                   controller: _senhaController,
-                  obscureText: true,
-                  decoration: inputDecoration("Digite uma senha de 8 dígitos, incluindo um número, uma letra maiúscula e um caractere especial", _senhaError, "Senha", Icons.lock_open),
+                  obscureText: ! _senhaVisivel, 
+                  cursorColor: Colors.black54,
+                  decoration: inputDecoration(
+                    "Digite uma senha de 8 dígitos, incluindo um número, uma letra maiúscula e um caractere especial", 
+                    _senhaError, 
+                    "Senha", 
+                    Icons.lock_open,
+                    IconButton(
+                      icon: Icon(_senhaVisivel 
+                        ? Icons.visibility 
+                        : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _senhaVisivel = !_senhaVisivel;
+                        });
+                      },
+                    )
+                  ),
                   inputFormatters: [
                     LengthLimitingTextInputFormatter(8), 
                   ],
