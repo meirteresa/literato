@@ -49,6 +49,7 @@ class MyApp extends StatelessWidget {
         '/cadastro': (context) => const CadastroPage(),
         '/individual': (context) => const IndividualPage(),
         '/multiplayer': (context) => const MultiplayerPage(),
+        '/help': (context) => const HelpPage(),
       },
     );
   }
