@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/individual.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 //cores
 const amarelo1 = Color(0xFFFBF6A4);
@@ -12,7 +14,7 @@ const branco = Color(0xFFFFFFFF);
 const transparente = Color(0x00000000);
 
 //funções
-dynamic inputDecoration(String? help, String? erro, String hintText, [IconData? icon]){
+dynamic inputDecoration(String? help, String? erro, String hintText, [IconData? icon, IconButton? suffixnIcon]){
   var deco = InputDecoration(
   prefixIcon: icon != null
       ? Padding(
@@ -20,6 +22,7 @@ dynamic inputDecoration(String? help, String? erro, String hintText, [IconData? 
           child: Icon(icon),
         )
       : null,
+    suffixIcon: suffixnIcon,
     hintText: hintText,
     hintStyle: const TextStyle(
       fontSize: 16.0, 
@@ -180,6 +183,7 @@ dynamic corBorda(bool ehAmarelo){
   return cor;
 }
 
+//Confirmação no menu da home para SAIR
 dynamic sair(BuildContext context){
   var deco = Dialog(
     child: Padding(
@@ -187,20 +191,25 @@ dynamic sair(BuildContext context){
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Text('Deseja sair da conta?'),
-                    const SizedBox(height: 15),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      child: const Text('Sair'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Cancelar'),
+                  children: [
+                    Text('Deseja sair da conta?'),
+                    SizedBox(height: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/login');
+                          },
+                          child: const Text('Sair'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Cancelar'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -210,6 +219,7 @@ dynamic sair(BuildContext context){
    return deco;
 }
 
+//app bar home
 dynamic barraMenu(BuildContext context){
   var barraMenu = AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
@@ -219,23 +229,29 @@ dynamic barraMenu(BuildContext context){
           toolbarHeight: 95,
           backgroundColor: Colors.purple[300],
           leading: IconButton(
+            padding: EdgeInsets.only(left: 25, right: 0, top: 20, bottom: 20),
             icon: Icon(Icons.help_outline_rounded, color: branco),
-            onPressed: () => Navigator.pushNamed(context, '/help'),
+            onPressed: () {},
             iconSize: 32,
           ),
           actions: [
-            IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.insert_chart_outlined_rounded, color: branco),
-              iconSize: 32,
-            ),
-            IconButton(
-              onPressed: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) => sair(context),
-              ),
-              icon: Icon(Icons.account_circle_sharp, color: branco),
-              iconSize: 32,
+            PopupMenuButton(
+              color: branco,
+              offset: Offset(0, 62),
+              menuPadding: EdgeInsets.only(left: 10, right: 10, top: 20, bottom: 20),
+              padding: EdgeInsets.only(left: 0, right: 25, top: 20, bottom: 20),
+              icon: Icon(Icons.account_circle_sharp, color: branco, size: 32),
+              onSelected: (value) {
+                if (value == "MudarIcone") {
+                  // Lógica para mudar o ícone
+                } else if (value == "Sair") {
+                  showDialog<String>(
+                    context: context,
+                    builder: (BuildContext context) => sair(context),
+                  );
+                }
+              },
+              itemBuilder: (context) => itemBuilder(context),
             ),
           ],
           title: Image.asset('images/logo5.png', fit: BoxFit.fill, height: 68),
@@ -251,39 +267,45 @@ dynamic barraMenu(BuildContext context){
   return barraMenu;
 }
 
-dynamic barraMenuAjuda(BuildContext context){
-  var barraMenu = AppBar(
-          toolbarHeight: 80,
-          backgroundColor: Colors.purple[300],
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: branco),
-            onPressed: () => Navigator.of(context).pop(),
-            iconSize: 32,
-          ),
-          title: Image.asset('images/logo5.png', fit: BoxFit.fill, height: 68),
-          centerTitle: true,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(0),
-              bottomRight: Radius.circular(0),
-            )
-          ),
-      );
-
-  return barraMenu;
+List<PopupMenuEntry<Object?>> itemBuilder(BuildContext context) {
+  return [
+    PopupMenuItem(
+      value: "MudarIcone",
+      child: Text("Mudar ícone do perfil", 
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: roxo,
+                    fontFamily: 'Lato',
+                  ),
+              ),
+    ),
+    PopupMenuItem(
+      value: "Sair",
+      child: Text("Sair da conta", 
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: roxo,
+                    fontFamily: 'Lato',
+                  ),
+              ),
+    ),
+  ];
 }
 
+//app bar individual
 dynamic barraMenuIndividual(BuildContext context){
   var barraMenu = AppBar(
           toolbarHeight: 80,
           backgroundColor: Colors.purple[300],
           leading: IconButton(
+            padding: EdgeInsets.only(left: 25, right: 0, top: 20, bottom: 20),
             icon: Icon(Icons.arrow_back, color: branco),
             onPressed: () => Navigator.of(context).pop(),
             iconSize: 32,
           ),
           actions: [
             IconButton(
+              padding: EdgeInsets.only(left: 0, right: 25, top: 20, bottom: 20),
               onPressed: () {},
               icon: Icon(Icons.help_outline_rounded, color: branco),
               iconSize: 32,
@@ -450,3 +472,143 @@ dynamic paddingCaixaPontos(bool ehQntd){
    EdgeInsets padding = ehQntd ? EdgeInsets.only(left:30, top: 13, bottom: 13) : EdgeInsets.all(13);
   return padding;
 }
+
+void mostrarMensagem(BuildContext context, String mensagem) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(mensagem),
+      backgroundColor: Colors.green,
+      behavior: SnackBarBehavior.floating,
+      action: SnackBarAction(
+        label: "OK",
+        textColor: Colors.white,
+        onPressed: () {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        },
+      ),
+    ),
+  );
+}
+
+//Caixa pedindo confirmaçao desistencia
+Future<bool> confirmaVitoria(BuildContext context) async {
+  return await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        actionsAlignment: MainAxisAlignment.center,
+        title: Text("Você ganhou!", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
+        content: Text("Achou todas as palavras e venceu o desafio! 🥳", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
+        actions: 
+        [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                  acao1();
+                },
+                child: Text("Ok", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void acao1() async {
+  await FirebaseFirestore.instance
+  .collection("usuarios")
+  .doc(FirebaseAuth.instance.currentUser?.uid)
+  .update({"partida_valida": false});
+} 
+
+//Caixa pedindo confirmaçao desistencia
+Future<bool> confirmaDesistencia(BuildContext context) async {
+  return await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        actionsAlignment: MainAxisAlignment.center,
+        title: Text("Confirmação", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
+        content: Text("Tem certeza que deseja desistir? ☹️", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
+        actions: 
+        [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                  acao1();
+                },
+                child: Text("Sim", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+                child: Text("Cancelar", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
+
+// Caixa de diálogo mostrando a pontuação e se é especial
+Future<void> confirmapontuacao(BuildContext context, String palavra, int pontos, bool especial) async {
+  String titulo = especial ? "🎉 Palavra Especial! 🎉" : "Palavra Encontrada!";
+  String mensagem = "\nVocê encontrou a palavra \"$palavra\"";
+  
+  return await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(
+          titulo,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: especial ? Colors.orange : roxo, fontFamily: 'Lato', fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              mensagem,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 16, fontWeight: FontWeight.w400),
+            ),
+            SizedBox(height: 15), // Espaço entre os textos
+            Text(
+              "+$pontos pontos",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: especial ? Colors.orangeAccent : Colors.green,
+                fontFamily: 'Lato',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Ok", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 16, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
