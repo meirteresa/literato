@@ -375,6 +375,27 @@ class IndividualPageController{
     updateCarregamento(false);
   }
  
+  Future<int?> carregarPontuacaoPalavra(String palavra) async {
+    String today = DateTime.now().toIso8601String().split("T")[0];
+
+    var doc = await FirebaseFirestore.instance
+        .collection("daily_levels")
+        .doc(today)
+        .get();
+
+    if (doc.exists) {
+      List<dynamic> palavrasDoDia = doc.data()?['palavras'] ?? [];
+
+      // Procura a palavra na lista e retorna a pontuação correspondente
+      for (var item in palavrasDoDia) {
+        if (item['palavra'] == palavra) {
+          return item['pontos'];
+        }
+      }
+    }
+
+    return null;
+  }
 
   //MENSAGENS E CAIXAS DE DIÁLOGO
 
@@ -516,13 +537,20 @@ class IndividualPageController{
 
   //VERIFICAR VITORIA & DESISTÊNCIA  
 
-  Future<void> verificarVitoria(BuildContext context, Function(bool) updatePartidaValida,) async {
-    bool confirmou = await confirmaVitoria(context);
-    
-    if (confirmou) {
-      mostrarMensagem(context, "Parabéns! Você venceu!");
+  Future<void> verificarVitoria(
+    BuildContext context, 
+    Function(bool) updatePartidaValida,
+    List<String> palavrasDoDia,
+    List<String> palavrasEncontradas
+  ) async {
+    if (Set<String>.from(palavrasEncontradas).containsAll(palavrasDoDia)) {
+      bool confirmou = await confirmaVitoria(context);
       
-      updatePartidaValida(false);
+      if (confirmou) {
+        mostrarMensagem(context, "Parabéns! Você venceu!");
+        
+        updatePartidaValida(false);
+      }
     }
   }
 
