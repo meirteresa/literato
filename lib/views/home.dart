@@ -12,12 +12,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final HomeController _controller = HomeController();
+  final HomeController _controllerPage = HomeController();
+  DateTime? lastPressed;
+  bool isLoading = true;
+
+  void _updateCarregamento(bool carregamento) {
+    setState(() {
+      isLoading = carregamento;
+    });
+  }
 
   @override
-  void initState() {
+  void initState(){
     super.initState();
-    ConnectionController.checaConexao(context); // Chama a verificação de internet ao iniciar
+    ConnectionController.checaConexao(context);
+    setState(() {
+      _controllerPage.carregarIconeDoFirestore(_updateCarregamento);
+    });
   }
 
   @override
@@ -26,16 +37,26 @@ class _HomePageState extends State<HomePage> {
       statusBarColor: Colors.transparent,
     ));
 
+    if (isLoading) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFA0D6B6),
+          appBar: _controllerPage.barraMenu(context),
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
-        bool shouldExit = await _controller.sairDoApp(context);
+        bool shouldExit = await _controllerPage.sairDoApp(context);
         if (shouldExit) FlutterExitApp.exitApp();
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFFBF6A4),
-        appBar: _controller.barraMenu(context),
+        appBar: _controllerPage.barraMenu(context),
         body: SingleChildScrollView(
           child: Center(
             child: Column(
