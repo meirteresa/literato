@@ -17,9 +17,20 @@ class Usuario{
         'nome': nome,
         'email': email,
         'senha': senha,
-        'pontuacao': 0, // Inicia com 0 pontos
+        'icone': 'padrao.png',
+
+        //Individual
+        'pontuacao': 0,
         'palavrasEncontradas': [],
         'partida_valida': true,
+
+        //Multiplayer
+        'pontuacaoM': 0,
+        'palavrasEncontradasM': [],
+        'partida_validaM': true,
+        'winM': false,
+        'buscandoM': true,
+
         'data_criacao': Timestamp.now(),
       });
 
@@ -28,4 +39,17 @@ class Usuario{
       throw Exception("Erro inesperado: $e");
     }
   }
+}
+
+class Player{
+  List<String> palavrasEncontradas;
+  int pontuacao;
+  bool partidaValida;
+  bool win;
+
+  Player.vazio()
+    : palavrasEncontradas = [],
+      pontuacao = 0,
+      partidaValida = false,
+      win = false;
 }
