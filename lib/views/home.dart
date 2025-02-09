@@ -13,7 +13,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HomeController _controller = HomeController();
-  DateTime? lastPressed;
+
+  @override
+  void initState() {
+    super.initState();
+    ConnectionController.checaConexao(context); // Chama a verificação de internet ao iniciar
+  }
 
   @override
   Widget build(BuildContext context) {
