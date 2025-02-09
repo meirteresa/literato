@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/functions/decos.dart';
+import 'package:literato/controllers/controllers.dart';
 
 class HelpPage extends StatefulWidget {
   const HelpPage({super.key});
@@ -10,6 +11,8 @@ class HelpPage extends StatefulWidget {
 }
 
 class _HelpPageState extends State<HelpPage>{
+  final HelpPageController _controller = HelpPageController();
+
   @override
   Widget build(BuildContext context){
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
@@ -18,7 +21,7 @@ class _HelpPageState extends State<HelpPage>{
     ));
     return Scaffold(
       backgroundColor: branco,
-      appBar: barraMenuAjuda(context),
+      appBar: _controller.barraMenuAjuda(context),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(17.0),
@@ -53,7 +56,7 @@ class _HelpPageState extends State<HelpPage>{
                 padding: const EdgeInsets.all(10),
                 decoration: boxDeco(),
                 child: const Text(
-                  'Todo dia você tem 20 palavras novas para descobrir usando as letras sorteadas. E a cada dia, o jogo começa de novo com letras diferentes para formar palavras novas.',
+                  'Todo dia você tem 21 palavras novas para descobrir, que variam de pontuação dependendo do tamanho, usando as letras sorteadas. E a cada dia, o jogo começa de novo com letras diferentes para formar palavras novas.',
                   style: TextStyle(
                     fontSize: 16,
                     color: Color.fromARGB(255, 186, 104, 200),
@@ -83,7 +86,7 @@ class _HelpPageState extends State<HelpPage>{
 
 2️⃣ As palavras precisam ter pelo menos 4 letras. 
 
-3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao. 
+3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao e açao vira acao. 
 
 4️⃣ A maioria dos verbos vai estar no infinitivo, mas alguns também podem aparecer no particípio.
 
