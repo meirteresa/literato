@@ -387,11 +387,11 @@ dynamic player(String nome, String pontuacao, bool ehLeft, String iconPath){
 }
 
 dynamic playerPadding(bool ehLeft){
-   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:0, right: 50, top: 15) : EdgeInsets.only(left:35, right: 0, top: 15);
+   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:0, right: 45, top: 15) : EdgeInsets.only(left:35, right: 0, top: 15);
   return padding;
 }
 
 dynamic pontosPadding(bool ehLeft){
-   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:50, top: 8, bottom: 0) : EdgeInsets.only(right:50, top: 8, bottom: 0);
+   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:50, top: 8, bottom: 0) : EdgeInsets.only(right:45, top: 8, bottom: 0);
   return padding;
 }
