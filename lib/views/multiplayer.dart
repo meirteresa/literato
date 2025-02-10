@@ -21,6 +21,7 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
   final ScrollController _scrollController = ScrollController();
   double _opacity = 1.0; // Controla a visibilidade do container
   final FocusNode _focusNode = FocusNode();
+  String mensagem_final = "";
 
   TextEditingController _controller = TextEditingController();
   final MultiplayerPageController _controllerPage = MultiplayerPageController();
@@ -29,6 +30,8 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
   bool isLoading = true;
   Player user = Player.vazio();
   Player adversario = Player.vazio();
+  String id_adversario = "";
+  Timestamp horaFimPartida = HoraFim.calcularHoraFimPartida();
  
 
   void _updateLetras(List<String> letrasAtualizadas) {
@@ -67,13 +70,16 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
     });
   }  
 
-  void _updateAdversario(int pontuacaoAtualizada , bool partidaValida, bool win, String nome, String icone) {
+  void _updateAdversario(int pontuacaoAtualizada , bool partidaValida, bool win, String nome, String icone, String? id) {
     setState(() {
       adversario.pontuacao = pontuacaoAtualizada;
       adversario.partidaValida = partidaValida;
       adversario.win = win;
       adversario.nome = nome;
       adversario.icone = icone;
+      if (id != null && id != id_adversario) {
+        id_adversario = id;
+      }
     });
   }  
 
@@ -90,6 +96,13 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
     });
   }
 
+  void _updateMensagemFinal(String mensagem) {
+    setState(() {
+      mensagem_final = mensagem;
+    });
+  }
+  
+
   @override
   void initState() {
     super.initState();
@@ -103,7 +116,7 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
         _updatePartidaWin,
         palavrasDoDia
       );
-      _controllerPage.findAndStartMatch();
+      _controllerPage.findAndStartMatch(context);
       _controllerPage.atualizarAdversario(_updateAdversario, _updateCarregamento);
     });
   }
@@ -143,11 +156,11 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
       });
 
       await FirebaseFirestore.instance.collection("usuarios").doc(FirebaseAuth.instance.currentUser?.uid).update({
-        "palavrasEncontradas": FieldValue.arrayUnion([palavra]),
-        "pontuacao": FieldValue.increment(pontosGanhos)
+        "palavrasEncontradasM": FieldValue.arrayUnion([palavra]),
+        "pontuacaoM": FieldValue.increment(pontosGanhos)
       });
 
-      _controllerPage.verificarVitoria(context, _updatePartidaValida, palavrasDoDia, user.palavrasEncontradas);
+      _controllerPage.verificarVitoria(context, _updatePartidaValida, _updatePartidaWin, _updateCarregamento, _updateMensagemFinal, _updateAdversario, palavrasDoDia, user.palavrasEncontradas, adversario, user.pontuacao, adversario.pontuacao, horaFimPartida, id_adversario);
     }else{
       _controllerPage.mostrarMensagem(context, "Palavra errada! Continue tentando 😉");
     }
@@ -192,7 +205,7 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
   return Scaffold(
     backgroundColor: const Color(0xFFA0D6B6),
     appBar: _controllerPage.barraMenuMultiplayer(context),
-    body: user.partidaValida ? jogoUI() : telaFinalUI(),
+    body: user.partidaValida ? jogoUI() : telaFinalUI(mensagem_final),
   );
   }
 
@@ -380,29 +393,27 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
           );
   }
 
-  Widget telaFinalUI() {
-    String mensagemFinal = user.palavrasEncontradas.length == palavrasDoDia.length
-        ? "Parabéns! Você acertou todas \nas palavras e ganhou o jogo! 🥇"
-        : "Você desistiu da partida e seu adversário venceu com ${adversario.pontuacao} pontos \n\n☹️";
-
+  Widget telaFinalUI(String mensagemFinal){
     return SingleChildScrollView(
       child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          SizedBox(height: 70),
+          SizedBox(height: 55),
           Text("Fim do Desafio!", style: GoogleFonts.lato(fontSize: 24, fontWeight: FontWeight.bold)),
           SizedBox(height: 10),
           Text(mensagemFinal, style: GoogleFonts.lato(fontSize: 18, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           SizedBox(height: 40),
-          Text("Pontuação final:", style: GoogleFonts.lato(fontSize: 18)),
+          Text("Sua pontuação final:", style: GoogleFonts.lato(fontSize: 18)),
+          Text("${user.pontuacao}  pontos", style: GoogleFonts.lato(fontSize: 22, fontWeight: FontWeight.w800, color: roxo)),
+          Text("Pontuação do seu adversário:", style: GoogleFonts.lato(fontSize: 18)),
           Text("${adversario.pontuacao}  pontos", style: GoogleFonts.lato(fontSize: 22, fontWeight: FontWeight.w800, color: roxo)),
           SizedBox(height: 40),
-          Text("Palavras encontradas:", style: GoogleFonts.lato(fontSize: 18)),
+          Text("Gabarito das palavras:", style: GoogleFonts.lato(fontSize: 18)),
           SizedBox(height: 10),
           Wrap(
             spacing: 8.0,
-            children: user.palavrasEncontradas.map((palavra) {
+            children: palavrasDoDia.map((palavra) {
               return Chip(label: Text(palavra));
             }).toList(),
           ),
