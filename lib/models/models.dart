@@ -69,3 +69,12 @@ class Match{
     : idAdversario = 0,
       isFinished = false;
 }
+
+class HoraFim{
+  static Timestamp calcularHoraFimPartida() {
+    DateTime agora = DateTime.now();
+    DateTime horafim = DateTime(agora.year, agora.month, agora.day + 1, 0, 0, 0);
+
+    return Timestamp.fromDate(horafim);
+  }
+}
