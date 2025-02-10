@@ -916,8 +916,8 @@ Future<void> findAndStartMatch(BuildContext context) async {
   }
 
   if (closestPlayer != null) {
-    print("Partida encontrada! Jogador mais próximo a $closestDistance km.");
-    mostrarMensagem(context, "Partida encontrada! Jogador mais próximo a $closestDistance km.");
+    print("Partida encontrada! Seu adversário está a $closestDistance m de distância.");
+    mostrarMensagem(context, "Partida encontrada! Seu adversário está a ${closestDistance.toStringAsFixed(2)} m de distância.");
     
     String matchId = '${userId}_${closestPlayer['id']}';
 
@@ -1317,8 +1317,12 @@ Future<void> verificarVitoria(
     if (horaFimPartida != null && agora.isAfter(horaFimPartida.toDate())) {
       if (meusPontos > pontosAdversario) {
         updateMensagemFinal("Você venceu! 🥳\nMais pontos no final do dia.");
+        String matchId = '${userId}_${idAdversario}';
+        await FirebaseFirestore.instance.collection('matches').doc(matchId).delete();
       } else if (meusPontos < pontosAdversario) {
         updateMensagemFinal("Você perdeu. ☹️\nO adversário fez mais pontos.");
+        String matchId = '${userId}_${idAdversario}';
+        await FirebaseFirestore.instance.collection('matches').doc(matchId).delete();
       } else {
         // Empate nos pontos, verificar quem terminou primeiro
         var meuTempoFinal = (await FirebaseFirestore.instance.collection("usuarios").doc(userId).get()).data()?["duracaoM"];
@@ -1330,16 +1334,22 @@ Future<void> verificarVitoria(
 
           if (meuTempo.isBefore(adversarioTempo)) {
             updateMensagemFinal("Empate nos pontos, mas você terminou primeiro!\nVitória! 🥳");
+            String matchId = '${userId}_${idAdversario}';
+            await FirebaseFirestore.instance.collection('matches').doc(matchId).delete();
           } else {
             updateMensagemFinal("Empate nos pontos, mas o adversário terminou primeiro.\n Você perdeu.☹️");
+            String matchId = '${userId}_${idAdversario}';
+            await FirebaseFirestore.instance.collection('matches').doc(matchId).delete();
           }
         } else {
           updateMensagemFinal("Empate! \nNão foi possível verificar quem terminou primeiro. 😐");
+          String matchId = '${userId}_${idAdversario}';
+          await FirebaseFirestore.instance.collection('matches').doc(matchId).delete();
         }
       }
+    }
       updatePartidaValida(false);
       return;
-    }
   }
 }
 
@@ -1367,3 +1377,4 @@ Future<void> verificarVitoria(
     }
   }
 }
+
