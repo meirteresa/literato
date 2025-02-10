@@ -30,6 +30,7 @@ class Usuario{
         'partida_validaM': true,
         'winM': false,
         'buscandoM': true,
+        'duracaoM': DateTime.now(),
 
         'data_criacao': Timestamp.now(),
       });
@@ -46,12 +47,18 @@ class Player{
   int pontuacao;
   bool partidaValida;
   bool win;
+  String icone;
+  String nome;
+  DateTime duracao;
 
   Player.vazio()
     : palavrasEncontradas = [],
       pontuacao = 0,
       partidaValida = false,
-      win = false;
+      win = false,
+      icone = "",
+      nome = "",
+      duracao = DateTime.now();
 }
 
 class Match{
