@@ -53,3 +53,12 @@ class Player{
       partidaValida = false,
       win = false;
 }
+
+class Match{
+  int idAdversario;
+  bool isFinished;
+
+  Match.vazio()
+    : idAdversario = 0,
+      isFinished = false;
+}
