@@ -842,22 +842,36 @@ class MultiplayerPageController{
         .toList();
   }
 
-  Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) async {
-    String apiKey = "AIzaSyBpVwMhg7zM5nnOujZutkwm3R7PyldRjFA";
-    String url =
-        "https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=$lat1,$lon1&destinations=$lat2,$lon2&key=$apiKey";
+Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) async {
+  String apiKey = "5b3ce3597851110001cf6248b05610570f034f4792a72c4188b2b02f"; // Substitua pela sua chave
+  String url = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=$apiKey&start=$lon1,$lat1&end=$lon2,$lat2";
 
+  try {
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body);
-      return data['rows'][0]['elements'][0]['distance']['value'] / 1000.0; // Convertendo metros para km
-    } else {
-      throw Exception('Erro ao calcular a distância');
-    }
-  }
+      var data = jsonDecode(response.body);
+      print("Resposta da API: ${response.body}");
 
-  Future<void> findAndStartMatch(Function(bool) updateCarregamento,) async {
+      if (data["features"] != null &&
+          data["features"].isNotEmpty &&
+          data["features"][0]["properties"] != null &&
+          data["features"][0]["properties"]["segments"] != null &&
+          data["features"][0]["properties"]["segments"].isNotEmpty) {
+        
+        double distance = data["features"][0]["properties"]["segments"][0]["distance"] / 1000; // metros → km
+        return distance;
+      }
+    }
+    throw Exception('Erro ao calcular a distância'); // Retorna null se a API não retornar os dados esperados
+  } catch (e) {
+    print("Erro na requisição: $e");
+    throw Exception('Erro ao calcular a distância');
+  }
+}
+
+
+  Future<void> findAndStartMatch() async {
     String? userId = FirebaseAuth.instance.currentUser?.uid;
     double myLat = 0;
     double myLon = 0;
@@ -873,6 +887,9 @@ class MultiplayerPageController{
     }
     
     List<Map<String, dynamic>> players = await getPlayersSearchingMatch(userId);
+
+    // print("Jogadores disponíveis: ${players.map((p) => p['id']).toList()}");
+
 
     if (players.isEmpty) {
       print("Nenhum jogador disponível no momento.");
@@ -894,18 +911,18 @@ class MultiplayerPageController{
     if (closestPlayer != null) {
       print("Partida encontrada! Jogador mais próximo a $closestDistance km.");
       // Criar a partida no Firebase
-      await FirebaseFirestore.instance.collection('matches').add({
+      String matchId = '${userId}_${closestPlayer['id']}'; // Ou outra lógica para gerar um ID único
+
+      await FirebaseFirestore.instance.collection('matches').doc(matchId).set({
         'player1': userId,
         'player2': closestPlayer['id'],
         'created_at': FieldValue.serverTimestamp(),
-    });
+      });
 
       // Remover jogadores da fila
       await FirebaseFirestore.instance.collection('players_waiting').doc(userId).delete();
       await FirebaseFirestore.instance.collection('players_waiting').doc(closestPlayer['id']).delete();
     }
-
-    updateCarregamento(false);
   }
 
   //CARREGAMENTOS DE DADOS
@@ -929,15 +946,67 @@ class MultiplayerPageController{
     }
   }
 
+  Future<void> atualizarAdversario(
+    Function(int,bool,bool,String,String) updateAdversario,
+    Function(bool) updateCarregamento,
+    ) async {
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+    var matchesCollection = FirebaseFirestore.instance.collection('matches');
+    int pontuacao = 0;
+    bool partidaValida = true;
+    bool win = false;
+    String nome = "";
+    String icone = "";
+
+    // Busca onde userId é player1
+    var query1 = await matchesCollection.where('player1', isEqualTo: userId).get();
+
+    // Busca onde userId é player2
+    var query2 = await matchesCollection.where('player2', isEqualTo: userId).get();
+
+    String? adversaryId;
+
+    if (query1.docs.isNotEmpty) {
+      adversaryId = query1.docs.first.data()['player2'];
+    } else if (query2.docs.isNotEmpty) {
+      adversaryId = query2.docs.first.data()['player1'];
+    }
+
+    if (adversaryId != null) {
+      var userDoc = await FirebaseFirestore.instance
+        .collection("usuarios")
+        .doc(adversaryId)
+        .get();
+
+      if (userDoc.exists) {
+        pontuacao = userDoc.data()?['pontuacaoM'] ?? 0;
+        partidaValida = userDoc.data()?['partida_validaM'] ?? true;
+        win = userDoc.data()?['win'] ?? false;
+        nome = userDoc.data()?['nome'] ?? "";
+        icone = userDoc.data()?['icone'] ?? "padrao.png";
+
+        updateAdversario(pontuacao, partidaValida, win, nome, icone);
+        updateCarregamento(false);
+      } else {
+        print('Nenhuma partida encontrada.');
+      }
+    }
+  }
+
   Future<void> carregarProgressoUsuario(
     Function(List<String>) updatePalavrasEncontradas,
     Function(int) updatePontuacao,
     Function(bool) updatePartidaValida,
+    Function(String, String) updateNomeIcone,
+    Function(bool) updatePartidaWin,
     List<String> palavrasDoDia
   ) async {
     List<String> palavrasEncontradas = [];
     int pontuacao = 0;
     bool partidaValida = true;
+    bool win = false;
+    String nome = "";
+    String icone = "";
 
     var userDoc = await FirebaseFirestore.instance
         .collection("usuarios")
@@ -947,7 +1016,10 @@ class MultiplayerPageController{
     if (userDoc.exists) {
       palavrasEncontradas = List<String>.from(userDoc.data()?['palavrasEncontradasM'] ?? []);
       pontuacao = userDoc.data()?['pontuacaoM'] ?? 0;
+      win = userDoc.data()?['win'] ?? false;
       partidaValida = userDoc.data()?['partida_validaM'] ?? true;
+      nome = userDoc.data()?['nome'] ?? "";
+      icone = userDoc.data()?['icone'] ?? "padrao.png";
 
       // Se houver palavras encontradas e pelo menos uma não estiver nas palavras do dia, resetar
       if (palavrasEncontradas.isNotEmpty &&
@@ -968,6 +1040,8 @@ class MultiplayerPageController{
       updatePalavrasEncontradas(palavrasEncontradas);
       updatePontuacao(pontuacao);
       updatePartidaValida(partidaValida);
+      updateNomeIcone(nome, icone);
+      updatePartidaWin(win);
     }
   }
 
@@ -975,7 +1049,6 @@ class MultiplayerPageController{
     Function(List<String>) updatePalavrasEncontradas,
     Function(int) updatePontuacao,
     Function(bool) updatePartidaValida,
-    Function(bool) updateCarregamento,
     List<String> palavrasDoDia
   ) async {
     List<String> palavrasEncontradas = [];
@@ -1012,8 +1085,6 @@ class MultiplayerPageController{
       updatePontuacao(pontuacao);
       updatePartidaValida(partidaValida);
     }
-
-    updateCarregamento(false);
   }
  
   Future<int?> carregarPontuacaoPalavra(String palavra) async {
