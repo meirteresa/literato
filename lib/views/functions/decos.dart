@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 //cores
 const amarelo1 = Color(0xFFFBF6A4);
@@ -335,3 +332,66 @@ dynamic paddingCaixaPontos(bool ehQntd){
   return padding;
 }
 
+//Multiplayer
+dynamic boxAdversarios(){
+  return BoxDecoration(
+          color: roxo,
+          border: Border(
+            top: BorderSide(color: Colors.white, width: 1.8),
+          ),
+          // borderRadius: BorderRadius.vertical(
+          //     bottom: Radius.elliptical(150,30)
+          //   )
+        );
+}
+
+dynamic player(String nome, String pontuacao, bool ehLeft, String iconPath){
+  return Padding(
+          padding: playerPadding(ehLeft),
+          child: Column(children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: branco,
+                  backgroundImage: AssetImage('images/$iconPath'),
+                  radius: 15,
+                ),
+
+                Padding(
+                  padding: EdgeInsets.only(left:10),
+                  child: Text(
+                    nome, 
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      color: Colors.white,
+                      fontFamily: 'Lato',
+                    ),
+                  ),
+                ),
+              ]
+            ),
+
+            Padding(
+              padding: pontosPadding(ehLeft),
+              child: Text(pontuacao, style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontFamily: 'Lato',
+              ),),
+            ),
+            
+            
+          ]),
+        );
+}
+
+dynamic playerPadding(bool ehLeft){
+   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:0, right: 50, top: 15) : EdgeInsets.only(left:35, right: 0, top: 15);
+  return padding;
+}
+
+dynamic pontosPadding(bool ehLeft){
+   EdgeInsets padding = ehLeft ? EdgeInsets.only(left:50, top: 8, bottom: 0) : EdgeInsets.only(right:50, top: 8, bottom: 0);
+  return padding;
+}
