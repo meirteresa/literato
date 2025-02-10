@@ -124,6 +124,8 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
   Future<void> verificarPalavra(String palavra) async {
     _focusNode.unfocus();
 
+    palavra = palavra.trim();
+
     if(RegExp(r'[áàâãéèêíïóôõöúçñ]').hasMatch(palavra)){
       _controllerPage.mostrarMensagem(context, "Lembre-se que acentos e cedilha não são aceitos! Tente escrever a palavra sem ele(s). ✍️");
       return;
@@ -192,15 +194,33 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
       systemNavigationBarColor: Colors.purple[300],
     ));
 
-  if (isLoading || letras.isEmpty || palavrasDoDia.isEmpty) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFA0D6B6),
-      appBar: _controllerPage.barraMenuMultiplayer(context),
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
+   if(isLoading){
+      return Scaffold(
+        backgroundColor: const Color(0xFFA0D6B6),
+        appBar: _controllerPage.barraMenuMultiplayer(context),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text("Procurando jogadores... Aguarde um momento.",
+                style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (letras.isEmpty || palavrasDoDia.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFA0D6B6),
+        appBar: _controllerPage.barraMenuMultiplayer(context),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
   return Scaffold(
     backgroundColor: const Color(0xFFA0D6B6),
