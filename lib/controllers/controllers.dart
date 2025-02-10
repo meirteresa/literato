@@ -826,104 +826,113 @@ class MultiplayerPageController{
     return barraMenu;
   }
 
-  Future<List<Map<String, dynamic>>> getPlayersSearchingMatch(String? userId) async {
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('players_waiting')
-        // .where('timestamp', isGreaterThan: Timestamp.now().seconds - 300) // Últimos 5 minutos
-        .get();
+Future<List<Map<String, dynamic>>> getPlayersSearchingMatch(String? userId) async {
+  QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('players_waiting')
+      .where(FieldPath.documentId, isNotEqualTo: userId) // 🔥 Filtra no Firestore
+      .get();
 
-    return snapshot.docs
-        .where((doc) => doc.id != userId)
-        .map((doc) {
-          var data = doc.data() as Map<String, dynamic>;
-          data['id'] = doc.id; // Adiciona o ID do jogador no mapa
-          return data;
-        })
-        .toList();
-  }
-
-Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) async {
-  String apiKey = "5b3ce3597851110001cf6248b05610570f034f4792a72c4188b2b02f"; // Substitua pela sua chave
-  String url = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=$apiKey&start=$lon1,$lat1&end=$lon2,$lat2";
-
-  try {
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      var data = jsonDecode(response.body);
-      print("Resposta da API: ${response.body}");
-
-      if (data["features"] != null &&
-          data["features"].isNotEmpty &&
-          data["features"][0]["properties"] != null &&
-          data["features"][0]["properties"]["segments"] != null &&
-          data["features"][0]["properties"]["segments"].isNotEmpty) {
-        
-        double distance = data["features"][0]["properties"]["segments"][0]["distance"] / 1000; // metros → km
-        return distance;
-      }
-    }
-    throw Exception('Erro ao calcular a distância'); // Retorna null se a API não retornar os dados esperados
-  } catch (e) {
-    print("Erro na requisição: $e");
-    throw Exception('Erro ao calcular a distância');
-  }
+  return snapshot.docs.map((doc) {
+    var data = doc.data() as Map<String, dynamic>;
+    data['id'] = doc.id; // Adiciona o ID do jogador no mapa
+    return data;
+  }).toList();
 }
 
+  double getDistance(double lat1, double lon1, double lat2, double lon2) {
+    double distancia = Geolocator.distanceBetween(lat1, lon1, lat2, lon2);
+    return distancia;
+  }
 
-  Future<void> findAndStartMatch() async {
-    String? userId = FirebaseAuth.instance.currentUser?.uid;
-    double myLat = 0;
-    double myLon = 0;
 
-    var userDoc = await FirebaseFirestore.instance
+Future<void> findAndStartMatch(BuildContext context) async {
+  String? userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return;
+
+  // 🔍 Verifica se o jogador já está em um match
+  var existingMatch = await FirebaseFirestore.instance
+      .collection("matches")
+      .where(Filter.or(
+        Filter("player1", isEqualTo: userId),
+        Filter("player2", isEqualTo: userId)
+      ))
+      .get();
+
+  if (existingMatch.docs.isNotEmpty) {
+    print("Jogador já está em um match ativo.");
+    mostrarMensagem2(context, "Jogador já está em um match ativo.");
+    return;
+  }
+
+  // 🔍 Verifica se o jogador está na fila de espera
+  var userDoc = await FirebaseFirestore.instance
       .collection("players_waiting")
       .doc(userId)
       .get();
 
-    if (userDoc.exists) {
-      myLat = userDoc.data()?['latitude'] ?? 0;
-      myLon = userDoc.data()?['longitude'] ?? 0;
-    }
-    
-    List<Map<String, dynamic>> players = await getPlayersSearchingMatch(userId);
+  double myLat = 0;
+  double myLon = 0;
 
-    // print("Jogadores disponíveis: ${players.map((p) => p['id']).toList()}");
+  if (!userDoc.exists) {
+    // 🆕 Adiciona o jogador à fila se não estiver nela
+    Position position = await Geolocator.getCurrentPosition();
+    myLat = position.latitude;
+    myLon = position.longitude;
 
+    await FirebaseFirestore.instance.collection("players_waiting").doc(userId).set({
+      'latitude': myLat,
+      'longitude': myLon,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
-    if (players.isEmpty) {
-      print("Nenhum jogador disponível no momento.");
-      return;
-    }
+    print("Jogador adicionado à fila.");
+    mostrarMensagem2(context, "Você entrou na fila para encontrar uma partida.");
+    return;
+  } else {
+    myLat = userDoc.data()?['latitude'] ?? 0;
+    myLon = userDoc.data()?['longitude'] ?? 0;
+  }
 
-    Map<String, dynamic>? closestPlayer;
-    double closestDistance = double.infinity;
+  // 🔍 Busca adversários disponíveis
+  List<Map<String, dynamic>> players = await getPlayersSearchingMatch(userId);
 
-    for (var player in players) {
-      double distance = await getDistance(myLat, myLon, player['latitude'], player['longitude']);
+  if (players.isEmpty) {
+    print("Nenhum jogador disponível no momento.");
+    mostrarMensagem2(context, "Nenhum jogador disponível no momento.");
+    return;
+  }
 
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestPlayer = player;
-      }
-    }
+  // 🔍 Encontra o jogador mais próximo
+  Map<String, dynamic>? closestPlayer;
+  double closestDistance = double.infinity;
 
-    if (closestPlayer != null) {
-      print("Partida encontrada! Jogador mais próximo a $closestDistance km.");
-      // Criar a partida no Firebase
-      String matchId = '${userId}_${closestPlayer['id']}'; // Ou outra lógica para gerar um ID único
+  for (var player in players) {
+    double distance = getDistance(myLat, myLon, player['latitude'], player['longitude']);
 
-      await FirebaseFirestore.instance.collection('matches').doc(matchId).set({
-        'player1': userId,
-        'player2': closestPlayer['id'],
-        'created_at': FieldValue.serverTimestamp(),
-      });
-
-      // Remover jogadores da fila
-      await FirebaseFirestore.instance.collection('players_waiting').doc(userId).delete();
-      await FirebaseFirestore.instance.collection('players_waiting').doc(closestPlayer['id']).delete();
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestPlayer = player;
     }
   }
+
+  if (closestPlayer != null) {
+    print("Partida encontrada! Jogador mais próximo a $closestDistance km.");
+    mostrarMensagem(context, "Partida encontrada! Jogador mais próximo a $closestDistance km.");
+    
+    String matchId = '${userId}_${closestPlayer['id']}';
+
+    await FirebaseFirestore.instance.collection('matches').doc(matchId).set({
+      'player1': userId,
+      'player2': closestPlayer['id'],
+      'created_at': FieldValue.serverTimestamp(),
+    });
+
+    // Remove jogadores da fila
+    await FirebaseFirestore.instance.collection('players_waiting').doc(userId).delete();
+    await FirebaseFirestore.instance.collection('players_waiting').doc(closestPlayer['id']).delete();
+  }
+}
+
 
   //CARREGAMENTOS DE DADOS
 
@@ -947,7 +956,7 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
   }
 
   Future<void> atualizarAdversario(
-    Function(int,bool,bool,String,String) updateAdversario,
+    Function(int,bool,bool,String,String, String?) updateAdversario,
     Function(bool) updateCarregamento,
     ) async {
     String? userId = FirebaseAuth.instance.currentUser?.uid;
@@ -985,7 +994,7 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
         nome = userDoc.data()?['nome'] ?? "";
         icone = userDoc.data()?['icone'] ?? "padrao.png";
 
-        updateAdversario(pontuacao, partidaValida, win, nome, icone);
+        updateAdversario(pontuacao, partidaValida, win, nome, icone, adversaryId);
         updateCarregamento(false);
       } else {
         print('Nenhuma partida encontrada.');
@@ -1126,6 +1135,23 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
     );
   }
 
+  void mostrarMensagem2(BuildContext context, String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: "OK",
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.pushNamed(context, '/home');;
+          },
+        ),
+      ),
+    );
+  }
+
   Future<bool> confirmaVitoria(BuildContext context) async {
     return await showDialog(
       context: context,
@@ -1133,8 +1159,8 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
       builder: (BuildContext context) {
         return AlertDialog(
           actionsAlignment: MainAxisAlignment.center,
-          title: Text("Você ganhou!", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
-          content: Text("Achou todas as palavras e venceu o desafio! 🥳", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
+          title: Text("Parabéns!", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
+          content: Text("Achou todas as palavras! 🥳", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
           actions: 
           [
             Row(
@@ -1170,7 +1196,7 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
         return AlertDialog(
           actionsAlignment: MainAxisAlignment.center,
           title: Text("Confirmação", style: TextStyle(color: roxo, fontFamily: 'Lato', fontSize: 18, fontWeight: FontWeight.w600)),
-          content: Text("Tem certeza que deseja desistir? ☹️", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
+          content: Text("Seu oponente irá vencer o jogo automaticamente se você desistir ☹️", style: TextStyle(color: Colors.black54, fontFamily: 'Lato', fontSize: 14, fontWeight: FontWeight.w400)),
           actions: 
           [
             Row(
@@ -1245,24 +1271,78 @@ Future<double> getDistance(double lat1, double lon1, double lat2, double lon2) a
     );
   }
 
-  //VERIFICAR VITORIA & DESISTÊNCIA  
+Future<void> verificarVitoria(
+  BuildContext context, 
+  Function(bool) updatePartidaValida,
+  Function(bool) updateWin,
+  Function(bool) updateCarregamento,
+  Function(String) updateMensagemFinal,
+  Function(int, bool, bool, String, String, String?) updateAdversario,
+  List<String> palavrasDoDia,
+  List<String> palavrasEncontradas,
+  Player adversario,
+  int meusPontos,
+  int pontosAdversario,
+  Timestamp? horaFimPartida,
+  String idAdversario
+) async {
+  atualizarAdversario(updateAdversario, updateCarregamento);
+  String? userId = FirebaseAuth.instance.currentUser?.uid;
+  DateTime agora = DateTime.now();
 
-  Future<void> verificarVitoria(
-    BuildContext context, 
-    Function(bool) updatePartidaValida,
-    List<String> palavrasDoDia,
-    List<String> palavrasEncontradas
-  ) async {
-    if (Set<String>.from(palavrasEncontradas).containsAll(palavrasDoDia)) {
-      bool confirmou = await confirmaVitoria(context);
-      
-      if (confirmou) {
-        mostrarMensagem(context, "Parabéns! Você venceu!");
-        
-        updatePartidaValida(false);
+  // Salvar o tempo de finalização do jogador ao terminar todas as palavras
+  if (Set<String>.from(palavrasEncontradas).containsAll(palavrasDoDia)) {
+    await FirebaseFirestore.instance.collection("usuarios").doc(userId).update({
+      'duracaoM': agora,  // Salva o tempo de finalização
+    });
+
+    bool adversarioAindaJoga = (await FirebaseFirestore.instance.collection("usuarios").doc(idAdversario).get()).data()?["partida_validaM"];
+
+    // Se o adversário desistiu, vitória automática
+    if (adversarioAindaJoga == false) {
+      updateMensagemFinal("Vitória automática! \nO adversário desistiu. 🥳");
+      updatePartidaValida(false);
+      updateWin(true);
+      return;
+    }
+    
+    if ( adversarioAindaJoga == true && horaFimPartida != null && agora.isBefore(horaFimPartida.toDate())){
+      updateMensagemFinal("Você venceu! 🥳");
+      updatePartidaValida(false);
+      updateWin(true);
+      return;
+    }
+
+    // Se chegou no horário limite da partida
+    if (horaFimPartida != null && agora.isAfter(horaFimPartida.toDate())) {
+      if (meusPontos > pontosAdversario) {
+        updateMensagemFinal("Você venceu! 🥳\nMais pontos no final do dia.");
+      } else if (meusPontos < pontosAdversario) {
+        updateMensagemFinal("Você perdeu. ☹️\nO adversário fez mais pontos.");
+      } else {
+        // Empate nos pontos, verificar quem terminou primeiro
+        var meuTempoFinal = (await FirebaseFirestore.instance.collection("usuarios").doc(userId).get()).data()?["duracaoM"];
+        var tempoAdversario = (await FirebaseFirestore.instance.collection("usuarios").doc(idAdversario).get()).data()?["duracaoM"];
+
+        if (meuTempoFinal != null && tempoAdversario != null) {
+          DateTime meuTempo = (meuTempoFinal as Timestamp).toDate();
+          DateTime adversarioTempo = (tempoAdversario as Timestamp).toDate();
+
+          if (meuTempo.isBefore(adversarioTempo)) {
+            updateMensagemFinal("Empate nos pontos, mas você terminou primeiro!\nVitória! 🥳");
+          } else {
+            updateMensagemFinal("Empate nos pontos, mas o adversário terminou primeiro.\n Você perdeu.☹️");
+          }
+        } else {
+          updateMensagemFinal("Empate! \nNão foi possível verificar quem terminou primeiro. 😐");
+        }
       }
+      updatePartidaValida(false);
+      return;
     }
   }
+}
+
 
   Future<void> desistir(BuildContext context, Function(bool) updatePartidaValida,) async {
     bool confirmou = await confirmaDesistencia(context);
