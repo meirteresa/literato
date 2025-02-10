@@ -116,6 +116,7 @@ class _HomePageState extends State<HomePage> {
                     child: ElevatedButton.icon(
                       style: botaoModoJogo(amarelo, true),
                       onPressed: () {
+                        _controllerPage.savePlayerLocation(context);
                         Navigator.pushNamed(context, '/multiplayer');
                       },
                       icon: const Icon(Icons.people, size: 26, color: rosa1),
