@@ -61,13 +61,28 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
     });
   }  
 
-  void _updateAdversario(int pontuacaoAtualizada , bool partidaValida, bool win) {
+  void _updatePartidaWin(bool win) {
+    setState(() {
+      user.win = win;
+    });
+  }  
+
+  void _updateAdversario(int pontuacaoAtualizada , bool partidaValida, bool win, String nome, String icone) {
     setState(() {
       adversario.pontuacao = pontuacaoAtualizada;
       adversario.partidaValida = partidaValida;
       adversario.win = win;
+      adversario.nome = nome;
+      adversario.icone = icone;
     });
   }  
+
+  void _updateNomeIcone(String nome, String icone) {
+    setState(() {
+      user.nome = nome;
+      user.icone = icone;
+    });
+  }
 
   void _updateCarregamento(bool carregamento) {
     setState(() {
@@ -84,9 +99,12 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
         _updatePalavrasEncontradas, 
         _updatePontuacao, 
         _updatePartidaValida,
+        _updateNomeIcone,
+        _updatePartidaWin,
         palavrasDoDia
       );
-      _controllerPage.findAndStartMatch(_updateCarregamento);
+      _controllerPage.findAndStartMatch();
+      _controllerPage.atualizarAdversario(_updateAdversario, _updateCarregamento);
     });
   }
 
@@ -200,7 +218,7 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
                               children: [
                                 DecoratedBox(
                                   decoration: BoxDecoration(),
-                                  child: player("meir", "${user.pontuacao} pontos", true, "rosa.png"),
+                                  child: player(user.nome, "${user.pontuacao} pontos", true, user.icone),
                                 ),
                                 SizedBox(
                                   height: 95,
@@ -208,7 +226,7 @@ class _MultiplayerPageState extends State<MultiplayerPage> {
                                 ),
                                 DecoratedBox(
                                   decoration: boxDeco(),
-                                  child: player("luana", "${adversario.pontuacao}  pontos", false, "verde.png"),
+                                  child: player(adversario.nome, "${adversario.pontuacao}  pontos", false, adversario.icone),
                                 ),
                               ],
                             )
