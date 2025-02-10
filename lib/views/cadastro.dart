@@ -1,193 +1,145 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:literato/views/functions/decos.dart';
 import 'package:literato/controllers/controllers.dart';
 
-class CadastroPage extends StatefulWidget {
-  const CadastroPage({super.key});
-
+class HelpPage extends StatefulWidget {
+  const HelpPage({super.key});
   @override
-  _CadastroPageState createState() => _CadastroPageState();
+
+  State<HelpPage> createState() => _HelpPageState();
 }
 
-class _CadastroPageState extends State<CadastroPage> {
-  final UsuarioController _controller = UsuarioController();
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _senhaController = TextEditingController();
-  bool _senhaVisivel = false;
-
-  late TapGestureRecognizer _tapGestureRecognizer;
-
-  String? _nomeError;
-  String? _emailError;
-  String? _senhaError;
+class _HelpPageState extends State<HelpPage>{
+  final HelpPageController _controller = HelpPageController();
 
   @override
-  void initState() {
-    super.initState();
-    _tapGestureRecognizer = TapGestureRecognizer()..onTap = _gotologin;
-  }
-
-  void _updateNomeError(String? error) {
-    setState(() {
-      _nomeError = error;
-    });
-  }
-  void _updateEmailError(String? error) {
-    setState(() {
-      _emailError = error;
-    });
-  }
-  void _updateSenhaError(String? error) {
-    setState(() {
-      _senhaError = error;
-    });
-  }
-
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    _emailController.dispose();
-    _senhaController.dispose();
-    _tapGestureRecognizer.dispose();
-    super.dispose();
-  }
-
-  void _gotologin() {
-    Navigator.pushNamed(context, '/login');
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.purple[300], 
+      systemNavigationBarColor: Colors.purple[300],
+    ));
     return Scaffold(
-      backgroundColor: const Color(0xFFA0D6B6),
-
+      backgroundColor: branco,
+      appBar: _controller.barraMenuAjuda(context),
       body: SingleChildScrollView(
-        child: Center(
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
+        child: Padding(
+          padding: const EdgeInsets.all(17.0),
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+  
+            Container(
+              margin: const EdgeInsets.only(top: 20.0, bottom: 10),
+              child: Stack(
+                children: <Widget>[
+                  Text('Ajuda', style: textoPrincipal1()),
+                  Text('Ajuda', style: textoPrincipal2()),
+                ],
+              ),
+            ),
 
-              // Imagem
+            const SizedBox(height: 5),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: boxDeco(),
+              child: Stack(
+                children: <Widget> [
+                  Text('Sobre o jogo', style: textoPrincipal1(),),
+                  Text('Sobre o jogo', style: textoPrincipal2(),),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 5),
               Container(
-                margin: const EdgeInsets.only(top: 50.0, bottom: 0.0),
-                width: 150.0,
-                height: 85.0,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: ExactAssetImage('images/logo5.png'),
-                    fit: BoxFit.fill,
+                padding: const EdgeInsets.all(10),
+                decoration: boxDeco(),
+                child: const Text(
+                  'Todo dia você tem 21 palavras novas para descobrir, que variam de pontuação dependendo do tamanho, usando as letras sorteadas. E a cada dia, o jogo começa de novo com letras diferentes para formar palavras novas.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color.fromARGB(255, 186, 104, 200),
                   ),
                 ),
               ),
 
-              // Texto de inscrição
-              Container(
-                margin: const EdgeInsets.only(top: 10.0),
-                child: Stack(
-                  children: <Widget>[
-                    Text('Inscreva-se para jogar!', style: textoPrincipal1()),
-                    Text('Inscreva-se para jogar!', style: textoPrincipal2()),
-                  ],
-                ),
+              const SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: boxDeco(),
+              child: Stack(
+                children: <Widget> [
+                  Text('Regras', style: textoPrincipal1(),),
+                  Text('Regras', style: textoPrincipal2(),),
+                ],
               ),
+            ),
 
-              // Campo Nome
+              const SizedBox(height: 5),
               Container(
-                margin: const EdgeInsets.only(top: 80.0, bottom: 10.0),
-                width: 300.0,
-                child: TextField(
-                  controller: _nomeController,
-                  decoration: inputDecoration(null, _nomeError, "Nome", Icons.person_rounded),
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(50),
-                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZÀ-ÿ\s]')),
-                  ],
-                ),
-              ),
+                padding: const EdgeInsets.all(10),
+                decoration: boxDeco(),
+                child: const Text(
+                  '''
+1️⃣ Nossa lista de palavras é bem escolhida e limitada, então nem todas as palavras do português vão ser aceitas. 
 
-              // Campo Email
-              Container(
-                margin: const EdgeInsets.only(top: 15.0, bottom: 10.0),
-                width: 300.0,
-                child: TextField(
-                  controller: _emailController,
-                  onChanged: (value) {
-                    _controller.onEmailChanged(value, _updateEmailError);
-                  },
-                  decoration: inputDecoration(null, _emailError, "Email", Icons.email_outlined),
-                ),
-              ),
+2️⃣ As palavras precisam ter pelo menos 4 letras. 
 
-              // Campo Senha
-              Container(
-                margin: const EdgeInsets.only(top: 15.0, bottom: 10.0),
-                width: 300.0,
-                height: 150.0,
-                child: TextField(
-                  controller: _senhaController,
-                  obscureText: ! _senhaVisivel, 
-                  cursorColor: Colors.black54,
-                  decoration: inputDecoration(
-                    "Digite uma senha de 8 dígitos, incluindo um número, uma letra maiúscula e um caractere especial", 
-                    _senhaError, 
-                    "Senha", 
-                    Icons.lock_open,
-                    IconButton(
-                      icon: Icon(_senhaVisivel 
-                        ? Icons.visibility 
-                        : Icons.visibility_off),
-                      onPressed: () {
-                        setState(() {
-                          _senhaVisivel = !_senhaVisivel;
-                        });
-                      },
-                    )
+3️⃣ Não aceitamos sinais diacríticos, então se a palavra tiver, escreva sem eles. Exemplo: peão vira peao e açao vira acao.
+
+4️⃣ A maioria dos verbos vai estar no infinitivo, mas alguns também podem aparecer no particípio.
+
+5️⃣ Plurais não são válidos. 
+
+6️⃣ Palavras ofensivas, termos científicos, gírias ou alguns verbos não vão aparecer. 
+
+7️⃣ As letras podem se repetir nas palavras. ''',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color.fromARGB(255, 186, 104, 200),
                   ),
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(8), 
-                  ],
                 ),
               ),
 
-              // Botão de cadastro
-              ElevatedButton(
-                style: botaoEntrar(),
-                onPressed: () {
-                  final nome = _nomeController.text;
-                  final email = _emailController.text;
-                  final senha = _senhaController.text;
-
-                  _controller.salvarUsuario(context, nome, email, senha, _updateNomeError, _updateEmailError, _updateSenhaError);
-                },
-                child: const Text('Cadastrar'),
+              const SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: boxDeco(),
+              child: Stack(
+                children: <Widget> [
+                  Text('Sobre o jogo Multiplayer', style: textoPrincipal1(),),
+                  Text('Sobre o jogo Multiplayer', style: textoPrincipal2(),),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 40.0),
+            const SizedBox(height: 5),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: boxDeco(),
+                child: const Text(
+                  '''
+1️⃣ Ao entrar no modo multiplayer, você será conectado ao jogador mais próximo disponível.
 
-              // Link para login
-              RichText(
-                text: TextSpan(
-                  children: <TextSpan>[
-                    const TextSpan(
-                      text: 'Já tem uma conta? ',
-                      style: TextStyle(color: Colors.black87, fontSize: 16.0),
-                    ),
-                    TextSpan(
-                      text: 'Faça login.',
-                      style: TextStyle(color: Colors.blue[800], fontSize: 16.0),
-                      recognizer: _tapGestureRecognizer,
-                    ),
-                  ],
+2️⃣ Todo dia, um novo jogo começa com um conjunto diferente de letras para formar palavras.
+
+3️⃣ Como Vencer? 🏆
+
+O jogador que formar mais palavras corretamente e acumular mais pontos vence.
+Se houver empate em pontos, o vencedor será quem terminar primeiro.
+Caso um jogador desista, o outro vence automaticamente.
+''',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color.fromARGB(255, 186, 104, 200), 
+                  ),
                 ),
               ),
-            ],
-        ),
+          ],
         ),
       ),
+    ),
     );
   }
 }
