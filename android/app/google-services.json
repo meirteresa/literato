@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "337568742739",
+    "project_id": "literato-594a6",
+    "storage_bucket": "literato-594a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:337568742739:android:52dc1c7e9434b7d1ecf5a6",
+        "android_client_info": {
+          "package_name": "com.example.literato"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkUOnkYm5OgjSw_KHQXYsXrsk9-bnZBtE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
